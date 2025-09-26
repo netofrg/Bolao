@@ -18,8 +18,10 @@
         <form method="POST" action="{{ url_for('salvar_aposta', rodada_id=rodada._id) }}">
             
             {% for jogo in rodada.jogos %}
-                {% set jogo_id_str = jogo._id %} 
+                {# CRÍTICO: Usamos 'jogo.id_jogo' para corresponder à correção no Flask #}
+                {% set jogo_id_str = jogo.id_jogo %} 
                 
+                {# Lógica para preencher o palpite existente #}
                 {% set palpite_casa = '' %}
                 {% set palpite_visitante = '' %}
                 {% set palpite_encontrado = false %}
@@ -34,7 +36,7 @@
                     {% endfor %}
                 {% endif %}
 
-                {# Bloco do Jogo - USANDO D-FLEX PARA ALINHAMENTO HORIZONTAL #}
+                {# Bloco do Jogo - Alinhamento Horizontal (Escudo/Sigla + Textbox) #}
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="card-title text-center text-muted">Jogo {{ loop.index }}</h5>

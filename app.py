@@ -338,9 +338,57 @@ def login():
 
 
 @app.route('/painel')
-@login_required  # Adicionado login_required para segurança
+@login_required
 def painel():
-    return render_template('painel.html', is_admin=session.get('is_admin', False))
+    # 1. Obter a data e hora atual no formato do seu banco de dados (ex: 'DD/MM/YYYY HH:MM')
+    # Assumindo que você usa DATETIME_FORMAT = '%d/%m/%Y %H:%M'
+    agora = datetime.now().strftime(DATETIME_FORMAT)
+    
+    # --- Lógica de Busca de Rodadas ---
+
+    # 2. Busca a próxima rodada aberta
+    # CRÍTICO: Se sua data está no formato 'DD/MM/YYYY HH:MM', a comparação de strings
+    # do MongoDB ('$gt') pode não funcionar como esperado (não é ordem cronológica).
+    # Vamos buscar todas as rodadas e filtrar no Python para maior precisão.
+    
+    todas_rodadas = list(rodadas_collection.find().sort([('numero', -1)]))
+    
+    rodada_aberta = None
+    rodadas_disponiveis = []
+
+    for rodada in todas_rodadas:
+        try:
+            # Converte a data do DB (string) para objeto datetime para comparação
+            data_limite = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
+            
+            # Se o prazo ainda não passou
+            if data_limite > datetime.now():
+                # Esta rodada está disponível para apostas ou consulta
+                rodadas_disponiveis.append(rodada)
+                
+                # A primeira rodada que encontrarmos com prazo futuro (por ser a mais recente ou por ordenação)
+                # será a rodada aberta principal
+                if rodada_aberta is None:
+                    rodada_aberta = rodada
+            else:
+                # O prazo passou, mas a rodada ainda está disponível para CONSULTA GERAL
+                rodadas_disponiveis.append(rodada)
+
+        except (ValueError, TypeError):
+            # Ignora rodadas com formato de data inválido
+            continue 
+
+    # 3. Serializa os objetos do MongoDB antes de enviar para o Jinja2
+    if rodada_aberta:
+        rodada_aberta = serialize_mongo_object(rodada_aberta)
+    
+    rodadas_disponiveis = serialize_mongo_object(rodadas_disponiveis)
+    
+    # 4. Envia as variáveis para o template
+    return render_template('painel.html', 
+                           is_admin=session.get('is_admin', False),
+                           rodada_aberta=rodada_aberta, 
+                           rodadas_disponiveis=rodadas_disponiveis)
 
 
 @app.route('/logout')
@@ -400,8 +448,8 @@ def apostar():
 @login_required
 def salvar_aposta(rodada_id):
     """
-    CORRIGIDO: Processa o formulário, salva os palpites E verifica o limite de aposta
-    usando a data E hora.
+    Processa o formulário, salva os palpites e verifica o limite de aposta.
+    CORRIGIDO: Usa 'id_jogo' como identificador para corresponder ao formulário.
     """
     try:
         rodada_object_id = ObjectId(rodada_id)
@@ -411,7 +459,7 @@ def salvar_aposta(rodada_id):
             flash("Rodada não encontrada.", 'danger')
             return redirect(url_for('painel'))
 
-        # --- VERIFICAÇÃO DE DATA E HORA LIMITE (CRÍTICO) ---
+        # --- VERIFICAÇÃO DE DATA E HORA LIMITE ---
         try:
             data_limite_aposta = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
         except (ValueError, TypeError):
@@ -421,35 +469,46 @@ def salvar_aposta(rodada_id):
         agora = datetime.now()
 
         if agora >= data_limite_aposta:
-            # Formata a data e hora para a mensagem de erro
             data_formatada = data_limite_aposta.strftime('%d/%m/%Y às %H:%M')
             flash(f"O prazo para apostar na Rodada {rodada.get('numero')} encerrou em {data_formatada}.", 'danger')
             return redirect(url_for('painel'))
-        # ----------------------------------------------------
+        # ------------------------------------------
 
         usuario_object_id = ObjectId(session['usuario_id'])
         palpites = []
 
         for jogo in rodada['jogos']:
-            jogo_id_str = str(jogo['id_jogo'])
+            
+            # CORREÇÃO CRÍTICA: Prioriza o uso do identificador 'id_jogo',
+            # que é o campo que existe na sua estrutura de dados e foi usado no HTML
+            if 'id_jogo' not in jogo:
+                 flash('Erro fatal: Nenhum identificador (id_jogo) encontrado para um jogo. Verifique o DB.', 'danger')
+                 return redirect(url_for('apostar'))
 
-            placar_casa_str = request.form.get(f'placar_casa_{jogo_id_str}')
-            placar_visitante_str = request.form.get(f'placar_visitante_{jogo_id_str}')
+            jogo_identificador = str(jogo['id_jogo'])
+            
+            # Os nomes dos campos que o Flask deve buscar no request.form
+            campo_casa = f'placar_casa_{jogo_identificador}'
+            campo_visitante = f'placar_visitante_{jogo_identificador}'
+
+            placar_casa_str = request.form.get(campo_casa)
+            placar_visitante_str = request.form.get(campo_visitante)
 
             try:
-                # Converte para int ou None/erro
+                # Trata strings vazias ou None como None (vazio)
                 placar_casa = int(placar_casa_str) if placar_casa_str is not None and placar_casa_str.strip() != '' else None
                 placar_visitante = int(placar_visitante_str) if placar_visitante_str is not None and placar_visitante_str.strip() != '' else None
             except ValueError:
-                flash('Todos os placares devem ser números inteiros (0 ou mais).', 'danger')
+                flash('Os placares devem ser números inteiros (0 ou mais).', 'danger')
                 return redirect(url_for('apostar'))
 
+            # Validação: Se um deles for None, o palpite não foi preenchido
             if placar_casa is None or placar_visitante is None:
                 flash('Todos os palpites devem ser preenchidos.', 'danger')
                 return redirect(url_for('apostar'))
 
             palpites.append({
-                'id_jogo': jogo['id_jogo'],
+                'id_jogo': jogo_identificador, # Salva o identificador que funciona
                 'placar_casa': placar_casa,
                 'placar_visitante': placar_visitante
             })
@@ -474,7 +533,6 @@ def salvar_aposta(rodada_id):
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
-
 
 @app.route('/ranking')
 @login_required
@@ -502,6 +560,50 @@ def ranking():
             })
 
     return render_template('ranking.html', ranking_final=ranking_final)
+
+@app.route('/minhas_apostas')
+@login_required
+def minhas_apostas():
+    """Busca todos os palpites do usuário logado para visualização individual."""
+    
+    usuario_object_id = ObjectId(session['usuario_id'])
+    
+    # Busca todos os palpites do usuário logado
+    palpites_do_usuario = palpites_collection.find(
+        {'usuario_id': usuario_object_id}
+    ).sort([('data_criacao', -1)]) # Mostra os mais recentes primeiro
+    
+    palpites_com_dados_completos = []
+
+    for palpite in palpites_do_usuario:
+        
+        # 1. Busca a rodada para obter os detalhes (nome, jogos, etc.)
+        rodada = rodadas_collection.find_one({'_id': palpite['rodada_id']})
+        if not rodada: continue # Ignora se a rodada não for encontrada
+
+        # 2. Anexa os dados completos dos times (escudos) a CADA JOGO no palpite
+        for p in palpite['palpites']:
+            # Localiza o jogo original na rodada usando o 'id_jogo'
+            jogo_original = next((j for j in rodada['jogos'] if str(j['id_jogo']) == p['id_jogo']), None)
+            
+            if jogo_original:
+                # Usa a função auxiliar para buscar os dados completos do time
+                p['time_casa'] = get_time_by_id(jogo_original['time_casa_id'])
+                p['time_visitante'] = get_time_by_id(jogo_original['time_visitante_id'])
+        
+        # 3. Monta o objeto final para o template
+        dados_completos = {
+            'rodada_numero': rodada.get('numero'),
+            'data_criacao': palpite.get('data_criacao'),
+            'data_limite': rodada.get('data_limite_apostas'),
+            'palpites': palpite['palpites']
+        }
+        
+        palpites_com_dados_completos.append(dados_completos)
+
+    # Renderiza o novo template
+    return render_template('minhas_apostas.html', 
+                           palpites_do_usuario=palpites_com_dados_completos)
 
 
 # --- ROTA DE CONSULTA DE PALPITES (CORRIGIDA) ---

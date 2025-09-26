@@ -1,90 +1,113 @@
 {% extends "base.html" %}
 
-{% block title %}Painel{% endblock %}
+{% block title %}Painel do Bolão{% endblock %}
 
 {% block content %}
-<div class="container my-4">
-    <div class="row">
-        <div class="col-md-8">
-            <h1 class="mb-4">Painel do Bolão</h1>
+    <div class="container my-4">
+        <h2 class="mb-4">Painel do Bolão</h2>
+
+        <div class="row">
             
-            {% set rodada = get_proxima_rodada_aberta() %}
-
-            {% if rodada %}
-                <div class="card shadow-sm border-primary mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0">Próxima Rodada Aberta: Rodada {{ rodada.numero }}</h4>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">
-                            Você tem até **{{ rodada.data_limite_apostas }}** para enviar ou alterar seus palpites.
-                        </p>
-                        <a href="{{ url_for('apostar') }}" class="btn btn-lg btn-success">
-                            <i class="fas fa-paper-plane"></i> Apostar Agora
-                        </a>
-                    </div>
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    Nenhuma rodada aberta para apostas no momento. Fique de olho no calendário!
-                </div>
-            {% endif %}
-
-            <hr class="my-4">
-
-            <h3 class="mb-3">Rodadas Disponíveis para Consulta/Aposta</h3>
-            <div class="list-group">
-                {% for r in get_db_rodadas() %}
-                    {% set data_limite = r.data_limite_apostas %}
-                    {% set prazo_expirou = data_limite < now_date() %}
-
-                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        Rodada {{ r.numero }}
-                        
-                        <div class="btn-group" role="group">
-                            {% if prazo_expirou %}
-                                <a href="{{ url_for('consulta_palpites', rodada_id=r._id) }}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i> Ver Palpites
-                                </a>
-                            {% else %}
-                                <span class="badge bg-warning text-dark me-2">Prazo: {{ data_limite }}</span>
-                                {% if rodada and rodada._id == r._id %}
-                                    <a href="{{ url_for('apostar') }}" class="btn btn-sm btn-success disabled">
-                                        <i class="fas fa-edit"></i> Já na tela
-                                    </a>
-                                {% else %}
-                                    <a href="#" class="btn btn-sm btn-secondary disabled">
-                                        <i class="fas fa-lock"></i> Bloqueado
-                                    </a>
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    </a>
-                {% endfor %}
-            </div>
-
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white">
-                    <i class="fas fa-bolt"></i> Acesso Rápido
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="{{ url_for('ranking') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-chart-line"></i> Ranking Geral
-                    </a>
-                    {% if session.get('is_admin') %}
-                        <a href="{{ url_for('admin_index') }}" class="list-group-item list-group-item-action list-group-item-warning">
-                            <i class="fas fa-tools"></i> **Área do Administrador**
-                        </a>
+            <div class="col-md-8">
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
                     {% endif %}
-                    <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action text-danger">
-                        <i class="fas fa-sign-out-alt"></i> Sair
-                    </a>
+                {% endwith %}
+
+                {# Bloco da Próxima Rodada Aberta #}
+                {% if rodada_aberta %}
+                    <div class="card shadow mb-4">
+                        <div class="card-header bg-primary text-white fs-5">
+                            Próxima Rodada Aberta: Rodada {{ rodada_aberta.numero }}
+                        </div>
+                        <div class="card-body">
+                            {# NOVO CÓDIGO DE FORMATAÇÃO DE DATA #}
+                            {% set data_str = rodada_aberta.data_limite_apostas | replace('T', ' ') %}
+                            <p class="card-text">
+                                Você tem até **{{ data_str.split(' ')[0].split('-') | reverse | join('/') }} às {{ data_str.split(' ')[1][:5] }}** para enviar ou alterar seus palpites.
+                            </p>
+                            {# FIM DA FORMATAÇÃO #}
+                            <a href="{{ url_for('apostar') }}" class="btn btn-success btn-lg">
+                                <i class="fas fa-edit me-2"></i> Apostar Agora
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        Nenhuma rodada aberta para apostas no momento.
+                    </div>
+                {% endif %}
+
+                <h3 class="mt-5 mb-3">Rodadas Disponíveis para Consulta/Aposta</h3>
+
+                {# Bloco de Rodadas Disponíveis #}
+                {% if rodadas_disponiveis %}
+                    {% for rodada in rodadas_disponiveis %}
+                        <div class="card mb-3">
+                            <div class="card-body d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title">Rodada {{ rodada.numero }}</h5>
+                                    
+                                    {# NOVO CÓDIGO DE FORMATAÇÃO DE DATA #}
+                                    {% set data_str = rodada.data_limite_apostas | replace('T', ' ') %}
+                                    <p class="card-text text-muted small mb-0">
+                                        Prazo: {{ data_str.split(' ')[0].split('-') | reverse | join('/') }} às {{ data_str.split(' ')[1][:5] }}
+                                    </p>
+                                    {# FIM DA FORMATAÇÃO #}
+                                </div>
+                                
+                                <div>
+                                    {% if rodada_aberta and rodada._id == rodada_aberta._id %}
+                                        <span class="badge bg-success ms-2">Já na tela</span>
+                                    {% else %}
+                                        <a href="{{ url_for('consulta_palpites', rodada_id=rodada._id) }}" class="btn btn-sm btn-outline-info">
+                                            Consultar
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>Nenhuma rodada cadastrada ou disponível para consulta.</p>
+                {% endif %}
+
+            </div>
+
+            {# COLUNA LATERAL: ACESSO RÁPIDO #}
+            <div class="col-md-4">
+                
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-bolt"></i> Acesso Rápido
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        
+                        <li class="list-group-item">
+                            <a href="{{ url_for('ranking') }}" class="text-decoration-none">
+                                <i class="fas fa-trophy me-2"></i> Ranking Geral
+                            </a>
+                        </li>
+                        
+                        <li class="list-group-item">
+                            <a href="{{ url_for('minhas_apostas') }}" class="text-decoration-none text-primary">
+                                <i class="fas fa-eye me-2"></i> Consultar Minhas Apostas
+                            </a>
+                        </li>
+
+                        <li class="list-group-item">
+                            <a href="{{ url_for('logout') }}" class="text-decoration-none text-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i> Sair
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
+
         </div>
     </div>
-</div>
 {% endblock %}

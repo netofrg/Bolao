@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas Apostas{% endblock %}
+
+{% block content %}
+    <div class="container my-4">
+        <h2 class="mb-4 text-primary"><i class="fas fa-eye"></i> Minhas Apostas Realizadas</h2>
+        
+        {% if not palpites_do_usuario %}
+            <div class="alert alert-info">
+                Você ainda não registrou nenhum palpite.
+            </div>
+        {% endif %}
+
+        {% for dados_rodada in palpites_do_usuario %}
+            
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-light fw-bold fs-5">
+                    Rodada {{ dados_rodada.rodada_numero }} 
+                    <small class="text-muted ms-3">
+                        Enviado em: {{ dados_rodada.data_criacao.strftime('%d/%m/%Y %H:%M') if dados_rodada.data_criacao else 'N/A' }}
+                    </small>
+                </div>
+                
+                <div class="card-body">
+                    <p class="mb-3 text-muted">Prazo Final: {{ dados_rodada.data_limite }}</p>
+
+                    {% for palpite in dados_rodada.palpites %}
+                        
+                        {# Bloco de Exibição do Palpite #}
+                        <div class="row align-items-center mb-3 border-bottom pb-2">
+                            
+                            <div class="col-5 d-flex justify-content-end align-items-center">
+                                <span class="fw-bold fs-5 me-2">{{ palpite.time_casa.sigla }}</span>
+                                {% if palpite.time_casa.escudo_base64 %}
+                                    <img src="{{ palpite.time_casa.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
+                                {% endif %}
+                                <span class="badge bg-primary ms-3 fs-5">{{ palpite.placar_casa }}</span>
+                            </div>
+
+                            <div class="col-2 text-center">
+                                <span class="badge bg-dark fs-5">X</span>
+                            </div>
+
+                            <div class="col-5 d-flex justify-content-start align-items-center">
+                                <span class="badge bg-primary me-3 fs-5">{{ palpite.placar_visitante }}</span>
+                                {% if palpite.time_visitante.escudo_base64 %}
+                                    <img src="{{ palpite.time_visitante.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
+                                {% endif %}
+                                <span class="fw-bold fs-5 ms-2">{{ palpite.time_visitante.sigla }}</span>
+                            </div>
+
+                        </div>
+                    {% endfor %}
+                    
+                </div>
+            </div>
+
+        {% endfor %}
+
+        <div class="mt-4">
+            <a href="{{ url_for('painel') }}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-undo"></i> Voltar ao Painel
+            </a>
+        </div>
+    </div>
+{% endblock %}
