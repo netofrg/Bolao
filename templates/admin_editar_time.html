@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Time - {{ time.nome }}</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .flash { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
+        .flash-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; }
+        .btn-cancel { background-color: #6c757d; margin-left: 10px; }
+        .escudo-atual { margin-top: 10px; border: 1px dashed #ccc; padding: 10px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>✏️ Editar Time: {{ time.nome }}</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <p>ID do MongoDB: <code>{{ time._id }}</code></p>
+
+        {# MUDANÇA 1: Adicionar enctype para permitir upload de arquivo #}
+        <form method="POST" action="{{ url_for('atualizar_time', time_id=time._id) }}" enctype="multipart/form-data">
+            
+            <label for="nome">Nome do Time</label>
+            <input type="text" id="nome" name="nome" value="{{ time.nome }}" required>
+            
+            <label for="sigla">Sigla (3 letras)</label>
+            <input type="text" id="sigla" name="sigla" value="{{ time.sigla }}" maxlength="3" required>
+            
+            <hr style="margin-top: 30px; margin-bottom: 20px;">
+            
+            {# MUDANÇA 2: Campo de upload de novo escudo #}
+            <label for="escudo_file">Novo Escudo (Envie apenas para alterar)</label>
+            <input type="file" id="escudo_file" name="escudo_file" accept="image/*">
+            <small style="display: block; margin-top: 5px; color: #6c757d;">Envie uma imagem (PNG/JPG). Se nenhum arquivo for enviado, o escudo atual será mantido.</small>
+            
+            {# MUDANÇA 3: Exibir o escudo atual (usando o campo escudo_base64) #}
+            {% if time.escudo_base64 %}
+                <div class="escudo-atual">
+                    <p style="margin: 0; font-weight: bold;">Escudo Atual:</p>
+                    <img src="{{ time.escudo_base64 }}" alt="Escudo Atual" style="max-width: 60px; height: auto; margin-top: 5px;">
+                </div>
+            {% endif %}
+
+            <button type="submit">Salvar Alterações</button>
+            
+            {# MUDANÇA 4: Corrigir o redirecionamento para 'admin_times' #}
+            <a href="{{ url_for('admin_times') }}" class="btn-cancel" style="padding: 10px 15px; text-decoration: none;">Voltar para Times</a>
+        </form>
+    </div>
+</body>
+</html>

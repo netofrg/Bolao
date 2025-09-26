@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Painel de Administração{% endblock %}</title>
+    <style>
+        /* CSS OMITIDO POR SER LONG E ESTAR OK */
+        body { font-family: sans-serif; padding: 20px; background-color: #e9ecef; }
+        .container { max-width: 1000px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .admin-nav { margin-bottom: 25px; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .admin-nav a { 
+            text-decoration: none; 
+            color: #495057; 
+            padding: 8px 15px; 
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            font-weight: bold;
+        }
+        .admin-nav a:hover {
+            background-color: #f8f9fa;
+        }
+        .admin-nav a.active {
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 7px;
+        }
+        .flash { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
+        .flash-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .form-section { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .btn-action { text-decoration: none; padding: 5px 10px; border-radius: 3px; margin-right: 5px; font-size: 14px; }
+        .btn-edit { background-color: #ffc107; color: #333; }
+        .btn-delete { background-color: #dc3545; color: white; border: none; cursor: pointer; }
+        select, input[type="text"], input[type="number"], input[type="date"] { padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; }
+        button[type="submit"] { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .jogo-campos { border: 1px dashed #ddd; padding: 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ Painel de Administração</h1>
+        <p>Bem-vindo, **{{ session.nome_completo }}**. <a href="{{ url_for('logout') }}">Sair</a></p>
+
+        <div class="admin-nav">
+            <a href="{{ url_for('admin_times') }}" class="{% if request.endpoint == 'admin_times' or 'times/editar' in request.endpoint %}active{% endif %}">Cadastro/Manutenção de Times</a>
+            <a href="{{ url_for('admin_rodadas') }}" class="{% if request.endpoint == 'admin_rodadas' %}active{% endif %}">Cadastro/Manutenção de Rodadas</a>
+            <a href="{{ url_for('placar_admin_lista') }}" class="{% if 'placar' in request.endpoint %}active{% endif %}">Registro de Placar Oficial</a>
+            
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="admin-content">
+            {% block content %}
+            {% endblock %}
+        </div>
+
+    </div>
+</body>
+</html>

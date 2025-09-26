@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Seleção de Rodada para Placar{% endblock %}
+
+{% block content %}
+
+<div class="container my-4">
+    
+    <h1 class="mb-4 text-primary"><i class="fas fa-tools"></i> Painel de Administração</h1>
+
+    <nav class="nav nav-tabs nav-fill mb-4">
+        <a class="nav-link" 
+            href="{{ url_for('admin_times') }}">
+            <i class="fas fa-users"></i> Gerenciar Times
+        </a>
+        <a class="nav-link" href="{{ url_for('admin_rodadas') }}">
+            <i class="fas fa-calendar-alt"></i> Gerenciar Rodadas
+        </a>
+        <a class="nav-link active" href="{{ url_for('placar_admin_lista') }}">
+            <i class="fas fa-trophy"></i> Registrar Placar
+        </a>
+        <a class="nav-link" 
+            href="{{ url_for('admin_status_apostas') }}">
+            <i class="fas fa-list-check"></i> Status de Apostas
+        </a>
+    </nav>
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h2 class="mb-0">
+                <i class="fas fa-list-ol"></i> Seleção de Rodada para Registrar Placar
+            </h2>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">
+                Selecione a rodada para inserir os resultados oficiais dos jogos. Você pode atualizar os placares quantas vezes forem necessárias.
+            </p>
+
+            {% if rodadas %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle shadow-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Rodada Nº</th>
+                                <th>Data Limite</th>
+                                <th>Jogos</th>
+                                <th>Status</th>
+                                <th style="width: 250px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rodada in rodadas %}
+                            <tr class="{% if rodada.processada %}table-success{% endif %}">
+                                <td>**{{ rodada.numero }}**</td>
+                                
+                                {# CORREÇÃO 1: Exibe a data (Dia/Mês/Ano) e a hora no formato legível. #}
+                                <td>
+                                    {{ rodada.data_limite_apostas.split('T')[0].split('-')[2] }}/{{ rodada.data_limite_apostas.split('T')[0].split('-')[1] }}/{{ rodada.data_limite_apostas.split('T')[0].split('-')[0] }} 
+                                    às 
+                                    {{ rodada.data_limite_apostas.split('T')[1] }}
+                                </td>
+                                
+                                <td>{{ rodada.jogos|length }}</td>
+                                <td>
+                                    {% if rodada.processada %}
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> Pontuada</span>
+                                    {% else %}
+                                        {# Verifica se todos os placares foram lançados antes de dizer "Pendente de Placar" ou "Pendente de Pontuação" #}
+                                        {% set placares_completos = rodada.jogos | selectattr('placar_casa') | list | length == rodada.jogos | length %}
+
+                                        {% if placares_completos %}
+                                            <span class="badge bg-warning text-dark"><i class="fas fa-history"></i> Aguardando Pontuação</span>
+                                        {% else %}
+                                            <span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Pendente de Placar</span>
+                                        {% endif %}
+
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('placar_admin_editar', rodada_id=rodada._id) }}" class="btn btn-sm btn-primary me-2">
+                                        <i class="fas fa-edit"></i> Inserir/Editar Placar
+                                    </a>
+                                    
+                                    {# CORREÇÃO 2: Removidas as tags </a> extras que estavam causando erro de sintaxe. #}
+                                    
+                                    <form method="POST" action="{{ url_for('calcular_ranking', rodada_id=rodada._id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja CALCULAR e PONTUAR esta Rodada? Certifique-se de que todos os placares estão corretos.');">
+                                        <button type="submit" class="btn btn-sm btn-danger" 
+                                            {% if not rodada.jogos | selectattr('finalizado') | list | length == rodada.jogos | length or rodada.processada %}disabled{% endif %}>
+                                            <i class="fas fa-calculator"></i> Pontuar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    Nenhuma rodada encontrada para registrar placar.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

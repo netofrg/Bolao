@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Consulta de Palpites - Rodada {{ rodada.numero }}{% endblock %}
+
+{% block content %}
+    <h2 style="text-align: center;">🔎 Palpites dos Participantes - Rodada {{ rodada.numero }}</h2>
+    <p style="text-align: center;">Data Limite de Apostas: {{ rodada.data_limite_apostas }}</p>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed;">
+        <thead>
+            <tr>
+                <th style="width: 10%; padding: 10px; border: 1px solid #007bff; background-color: #007bff; color: white;">Placar Oficial</th>
+                
+                <th style="width: 25%; padding: 10px; border: 1px solid #007bff; background-color: #007bff; color: white;">Jogo</th>
+                
+                {% for palpite_mapeado in palpites_mapeados %}
+                    <th style="padding: 10px; border: 1px solid #007bff; background-color: #007bff; color: white; width: calc(65% / {{ palpites_mapeados | length }});">
+                        {{ palpite_mapeado.apostador_nome }}
+                    </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for jogo in rodada.jogos %}
+                {% set jogo_id_str = jogo.id_jogo %}
+                
+                <tr style="border: 1px solid #ddd;">
+                    
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #dc3545;">
+                        {% if jogo.placar_casa is not none and jogo.placar_visitante is not none %}
+                            {{ jogo.placar_casa }} x {{ jogo.placar_visitante }}
+                        {% else %}
+                            (Pendente)
+                        {% endif %}
+                    </td>
+                    
+                    <td style="padding: 8px; border: 1px solid #ddd;">
+                        {{ get_time_sigla(jogo.time_casa_id) }} vs {{ get_time_sigla(jogo.time_visitante_id) }}
+                    </td>
+
+                    {% for palpite_mapeado in palpites_mapeados %}
+                        {% set palpite_jogo = palpite_mapeado.palpites | selectattr('id_jogo', 'equalto', jogo_id_str) | list | first %}
+                        
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                            {% if palpite_jogo %}
+                                <span style="font-weight: bold; color: #28a745;">
+                                    {{ palpite_jogo.placar_casa }} x {{ palpite_jogo.placar_visitante }}
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('painel') }}" class="btn-action" style="background-color: #6c757d; color: white; text-decoration: none; padding: 10px 15px; border-radius: 4px;">Voltar ao Painel</a>
+    </div>
+{% endblock %}

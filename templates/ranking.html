@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Ranking Geral{% endblock %}
+
+{% block content %}
+    <h2 style="text-align: center; color: #007bff;">👑 Classificação Geral do Bolão</h2>
+    <p style="text-align: center;">Pontuação acumulada de todas as rodadas processadas.</p>
+
+    {% if ranking_final %}
+        <table style="max-width: 600px; margin: 20px auto;">
+            <thead>
+                <tr>
+                    <th style="width: 10%; text-align: center;">Pos.</th>
+                    <th style="width: 60%;">Apostador</th>
+                    <th style="width: 30%; text-align: center;">Pontuação Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rank in ranking_final %}
+                    {% set pos = loop.index %}
+                    {% set cor_pos = '' %}
+                    
+                    {% if pos == 1 %}
+                        {% set cor_pos = 'background-color: #ffd700; font-weight: bold;' %}
+                    {% elif pos == 2 %}
+                        {% set cor_pos = 'background-color: #c0c0c0; font-weight: bold;' %}
+                    {% elif pos == 3 %}
+                        {% set cor_pos = 'background-color: #cd7f32; font-weight: bold;' %}
+                    {% endif %}
+
+                    <tr style="{{ cor_pos }}">
+                        <td style="text-align: center;">
+                            {% if pos == 1 %}🥇{% elif pos == 2 %}🥈{% elif pos == 3 %}🥉{% else %}{{ pos }}{% endif %}
+                        </td>
+                        <td>{{ rank.usuario }}</td>
+                        <td style="text-align: center; font-weight: bold; color: #28a745;">{{ rank.pontuacao }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; margin-top: 30px; padding: 20px; border: 1px dashed #dc3545; background-color: #f8d7da; border-radius: 4px;">
+            <p style="font-size: 1.1em; color: #721c24; font-weight: bold;">
+                O ranking ainda não possui dados. Verifique se as rodadas foram processadas.
+            </p>
+            <p style="margin-top: 15px;">
+                A pontuação geral é atualizada pelo Administrador após o registro de todos os placares oficiais de uma rodada.
+            </p>
+        </div>
+    {% endif %}
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('painel') }}" class="btn-action btn-primary">Voltar ao Painel</a>
+    </div>
+{% endblock %}

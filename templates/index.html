@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Bem-vindo ao Bolão!{% endblock %}
+
+{% block content %}
+    <h2>🎉 Bem-vindo ao Bolão do Brasileirão!</h2>
+    <p>
+        Este é o seu sistema de bolão de palpites, desenvolvido por Almir Neto. 
+        Prepare-se para registrar seus palpites e acompanhar a tabela de classificação!
+    </p>
+
+    <hr>
+    
+    {% if 'usuario' not in session %}
+        <h3>Comece Agora</h3>
+        <p>Ainda não tem uma conta? Cadastre-se em minutos e junte-se à competição!</p>
+        <p>
+            <a href="{{ url_for('cadastro') }}" style="text-decoration: none;">
+                <button type="button" style="background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">
+                    Criar Conta
+                </button>
+            </a>
+            
+            <a href="{{ url_for('login') }}" style="text-decoration: none; margin-left: 20px;">
+                <button type="button" style="background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">
+                    Fazer Login
+                </button>
+            </a>
+        </p>
+    {% else %}
+        <h3>Vamos APOSTAR!</h3>
+        <p>Você já está logado. Acesse seu painel para ver as rodadas abertas e registrar seus palpites.</p>
+        <p>
+            <a href="{{ url_for('painel') }}" style="text-decoration: none;">
+                <button type="button" style="background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">
+                    Ir para o Painel
+                </button>
+            </a>
+        </p>
+    {% endif %}
+    
+{% endblock %}

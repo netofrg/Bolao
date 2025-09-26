@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Painel{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h1 class="mb-4">Painel do Bolão</h1>
+            
+            {% set rodada = get_proxima_rodada_aberta() %}
+
+            {% if rodada %}
+                <div class="card shadow-sm border-primary mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Próxima Rodada Aberta: Rodada {{ rodada.numero }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            Você tem até **{{ rodada.data_limite_apostas }}** para enviar ou alterar seus palpites.
+                        </p>
+                        <a href="{{ url_for('apostar') }}" class="btn btn-lg btn-success">
+                            <i class="fas fa-paper-plane"></i> Apostar Agora
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    Nenhuma rodada aberta para apostas no momento. Fique de olho no calendário!
+                </div>
+            {% endif %}
+
+            <hr class="my-4">
+
+            <h3 class="mb-3">Rodadas Disponíveis para Consulta/Aposta</h3>
+            <div class="list-group">
+                {% for r in get_db_rodadas() %}
+                    {% set data_limite = r.data_limite_apostas %}
+                    {% set prazo_expirou = data_limite < now_date() %}
+
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        Rodada {{ r.numero }}
+                        
+                        <div class="btn-group" role="group">
+                            {% if prazo_expirou %}
+                                <a href="{{ url_for('consulta_palpites', rodada_id=r._id) }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> Ver Palpites
+                                </a>
+                            {% else %}
+                                <span class="badge bg-warning text-dark me-2">Prazo: {{ data_limite }}</span>
+                                {% if rodada and rodada._id == r._id %}
+                                    <a href="{{ url_for('apostar') }}" class="btn btn-sm btn-success disabled">
+                                        <i class="fas fa-edit"></i> Já na tela
+                                    </a>
+                                {% else %}
+                                    <a href="#" class="btn btn-sm btn-secondary disabled">
+                                        <i class="fas fa-lock"></i> Bloqueado
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-bolt"></i> Acesso Rápido
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('ranking') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line"></i> Ranking Geral
+                    </a>
+                    {% if session.get('is_admin') %}
+                        <a href="{{ url_for('admin_index') }}" class="list-group-item list-group-item-action list-group-item-warning">
+                            <i class="fas fa-tools"></i> **Área do Administrador**
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action text-danger">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

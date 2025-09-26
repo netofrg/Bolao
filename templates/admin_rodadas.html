@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciamento de Rodadas{% endblock %}
+
+{% block content %}
+
+<div class="container my-4">
+    
+    <h1 class="mb-4 text-primary"><i class="fas fa-tools"></i> Painel de Administração</h1>
+
+    <nav class="nav nav-tabs nav-fill mb-4">
+        <a class="nav-link" 
+           href="{{ url_for('admin_times') }}">
+            <i class="fas fa-users"></i> Gerenciar Times
+        </a>
+        <a class="nav-link active" href="{{ url_for('admin_rodadas') }}">
+            <i class="fas fa-calendar-alt"></i> Gerenciar Rodadas
+        </a>
+        <a class="nav-link" href="{{ url_for('placar_admin_lista') }}">
+            <i class="fas fa-trophy"></i> Registrar Placar
+        </a>
+        <a class="nav-link" 
+           href="{{ url_for('admin_status_apostas') }}">
+            <i class="fas fa-list-check"></i> Status de Apostas
+        </a>
+    </nav>
+    <div class="card shadow-sm mb-5">
+        <div class="card-header bg-success text-white">
+            <h3 class="mb-0"><i class="fas fa-calendar-plus"></i> Cadastrar Nova Rodada</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('cadastrar_rodada') }}">
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="numero_rodada" class="form-label">Número da Rodada</label>
+                        <input type="number" class="form-control" id="numero_rodada" name="numero_rodada" min="1" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="data_limite" class="form-label">Data Limite</label>
+                        {# CAMPO TIPO DATE SEPARADO #}
+                        <input type="date" class="form-control" id="data_limite" name="data_limite" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="hora_limite" class="form-label">Hora Limite</label>
+                        {# CAMPO TIPO TIME SEPARADO #}
+                        <input type="time" class="form-control" id="hora_limite" name="hora_limite" required>
+                        <small class="form-text text-muted">Apostas serão bloqueadas após essa data/hora.</small>
+                    </div>
+                </div>
+                
+                <h4 class="mb-3 text-secondary">Jogos da Rodada (Preencha até 10)</h4>
+                
+                {% for i in range(1, 11) %} 
+                <div class="row g-2 align-items-center mb-2 p-2 border rounded">
+                    <div class="col-1 text-center">
+                        <strong class="text-muted">Jogo {{ i }}</strong>
+                    </div>
+                    <div class="col-5">
+                        <select name="time_casa_id" class="form-select">
+                            <option value="">-- Time Casa --</option>
+                            {% for time in times %}
+                                <option value="{{ time._id }}">{{ time.nome }} ({{ time.sigla }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-1 text-center">
+                        <span class="badge bg-dark">VS</span>
+                    </div>
+                    <div class="col-5">
+                        <select name="time_visitante_id" class="form-select">
+                            <option value="">-- Time Visitante --</option>
+                            {% for time in times %}
+                                <option value="{{ time._id }}">{{ time.nome }} ({{ time.sigla }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <small class="d-block text-muted mt-3 mb-3">
+                    * Você deve selecionar o Time Casa e o Time Visitante para que o jogo seja considerado válido.
+                </small>
+
+                <button type="submit" class="btn btn-primary mt-3 w-100">
+                    <i class="fas fa-save"></i> Cadastrar Rodada
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <h2 class="mb-3 text-secondary">🗓️ Rodadas Cadastradas ({{ rodadas|length if rodadas is defined else 0 }})</h2>
+    
+    {% if rodadas %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Número</th>
+                        <th>Data Limite</th>
+                        <th>Jogos</th>
+                        <th>Status</th>
+                        <th style="width: 120px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rodada in rodadas %} 
+                    <tr class="{% if rodada.processada %}table-secondary{% endif %}">
+                        <td>Rodada **{{ rodada.numero }}**</td>
+                        <td>{{ rodada.data_limite_apostas }}</td>
+                        <td>{{ rodada.jogos|length }}</td>
+                        <td>
+                             {% if rodada.processada %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Pontuada</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pendente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('excluir_rodada', rodada_id=rodada._id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                        onclick="return confirm('ATENÇÃO! Tem certeza que deseja excluir a Rodada {{ rodada.numero }}? Isto apagará também palpites e rankings relacionados.');">
+                                    <i class="fas fa-trash-alt"></i> Excluir
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            Nenhuma rodada cadastrada ainda.
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

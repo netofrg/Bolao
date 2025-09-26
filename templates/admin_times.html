@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciamento de Times{% endblock %}
+
+{% block content %}
+
+<div class="container my-4">
+    
+    <h1 class="mb-4 text-primary"><i class="fas fa-tools"></i> Painel de Administração</h1>
+
+    <nav class="nav nav-tabs nav-fill mb-4">
+        <a class="nav-link active" 
+            href="{{ url_for('admin_times') }}">
+            <i class="fas fa-users"></i> Gerenciar Times
+        </a>
+        <a class="nav-link" href="{{ url_for('admin_rodadas') }}">
+            <i class="fas fa-calendar-alt"></i> Gerenciar Rodadas
+        </a>
+        <a class="nav-link" href="{{ url_for('placar_admin_lista') }}">
+            <i class="fas fa-trophy"></i> Registrar Placar
+        </a>
+        <a class="nav-link" 
+            href="{{ url_for('admin_status_apostas') }}">
+            <i class="fas fa-list-check"></i> Status de Apostas
+        </a>
+    </nav>
+    
+    <div class="card shadow-sm mb-5">
+        <div class="card-header bg-success text-white">
+            <h3 class="mb-0"><i class="fas fa-plus-circle"></i> Cadastrar Novo Time</h3>
+        </div>
+        <div class="card-body">
+            {# MUDANÇA 1: Adicionar enctype para upload de arquivo #}
+            <form method="POST" action="{{ url_for('cadastrar_time') }}" class="row g-3" enctype="multipart/form-data">
+                
+                <div class="col-md-4">
+                    <label for="nome" class="form-label">Nome do Time</label>
+                    <input type="text" id="nome" name="nome" class="form-control" placeholder="Ex: Flamengo" required>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="sigla" class="form-label">Sigla (3 letras)</label>
+                    <input type="text" id="sigla" name="sigla" class="form-control text-uppercase" maxlength="3" placeholder="Ex: FLA" required>
+                </div>
+                
+                {# MUDANÇA 2: Campo de upload de arquivo #}
+                <div class="col-md-4">
+                    <label for="escudo_file" class="form-label">Escudo (Imagem PNG/JPG)</label>
+                    <input type="file" id="escudo_file" name="escudo_file" class="form-control" accept="image/*">
+                    <small class="form-text text-muted">Será convertido para Base64 no banco.</small>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save"></i> Cadastrar Time
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <h2 class="mb-3 text-secondary">⚽ Lista de Times Cadastrados</h2>
+    
+    {% if times %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        {# MUDANÇA 3: Adicionar coluna para o Escudo #}
+                        <th style="width: 50px;">Escudo</th>
+                        <th>Nome</th>
+                        <th>Sigla</th>
+                        <th style="width: 200px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for time in times %}
+                    <tr>
+                        {# MUDANÇA 4: Exibir o escudo usando a string Base64 no atributo src #}
+                        <td>
+                            {% if time.escudo_base64 %}
+                                <img src="{{ time.escudo_base64 }}" alt="Escudo" style="max-width: 40px; height: auto;">
+                            {% else %}
+                                <i class="far fa-circle text-muted"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ time.nome }}</td>
+                        <td><span class="badge bg-secondary">{{ time.sigla }}</span></td>
+                        <td>
+                            <a href="{{ url_for('editar_time', time_id=time._id) }}" class="btn btn-sm btn-outline-info me-2">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('excluir_time', time_id=time._id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                        onclick="return confirm('Tem certeza que deseja excluir o time {{ time.sigla }}? Esta ação é irreversível se o time não estiver em rodadas.');">
+                                    <i class="fas fa-trash-alt"></i> Excluir
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            Nenhum time cadastrado ainda. Use o formulário acima para começar.
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Apostar na Rodada {{ rodada.numero }}{% endblock %}
+
+{% block content %}
+    <div class="container my-4">
+        <h2 class="mb-4 text-primary">✍️ Registrar Palpites - Rodada {{ rodada.numero }}</h2>
+        
+        <p>
+            Data Limite para Apostas: <span class="fw-bold">{{ rodada.data_limite_apostas }}</span>
+            {% if palpite_existente %}
+                <br><span class="text-success">Seus palpites serão atualizados.</span>
+            {% else %}
+                <br><span class="text-info">Esta é sua primeira aposta para esta rodada!</span>
+            {% endif %}
+        </p>
+
+        <form method="POST" action="{{ url_for('salvar_aposta', rodada_id=rodada._id) }}">
+            
+            {% for jogo in rodada.jogos %}
+                {% set jogo_id_str = jogo._id %} 
+                
+                {% set palpite_casa = '' %}
+                {% set palpite_visitante = '' %}
+                {% set palpite_encontrado = false %}
+                
+                {% if palpite_existente %}
+                    {% for palpite in palpite_existente.palpites %}
+                        {% if not palpite_encontrado and palpite.id_jogo == jogo_id_str %}
+                            {% set palpite_casa = palpite.placar_casa %}
+                            {% set palpite_visitante = palpite.placar_visitante %}
+                            {% set palpite_encontrado = true %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+
+                {# Bloco do Jogo - USANDO D-FLEX PARA ALINHAMENTO HORIZONTAL #}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title text-center text-muted">Jogo {{ loop.index }}</h5>
+                        
+                        <div class="row align-items-center g-2">
+                            
+                            <div class="col-5 d-flex justify-content-end align-items-center">
+                                
+                                <label class="fw-bold fs-5 me-3 d-flex align-items-center mb-0">
+                                    <span class="me-2">{{ jogo.time_casa.sigla }}</span>
+                                    {% if jogo.time_casa.escudo_base64 %}
+                                        <img src="{{ jogo.time_casa.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
+                                    {% endif %}
+                                </label>
+                                
+                                <input 
+                                    type="number" 
+                                    name="placar_casa_{{ jogo_id_str }}" 
+                                    min="0"
+                                    required
+                                    placeholder="Placar Casa"
+                                    value="{{ palpite_casa }}"
+                                    class="form-control form-control-lg text-center"
+                                    style="max-width: 100px;" 
+                                >
+                            </div>
+
+                            <div class="col-2 text-center">
+                                <span class="badge bg-dark fs-5">X</span>
+                            </div>
+
+                            <div class="col-5 d-flex justify-content-start align-items-center">
+                                
+                                <input 
+                                    type="number" 
+                                    name="placar_visitante_{{ jogo_id_str }}" 
+                                    min="0"
+                                    required
+                                    placeholder="Placar Visitante"
+                                    value="{{ palpite_visitante }}"
+                                    class="form-control form-control-lg text-center"
+                                    style="max-width: 100px;" 
+                                >
+                                
+                                <label class="fw-bold fs-5 ms-3 d-flex align-items-center mb-0">
+                                    {% if jogo.time_visitante.escudo_base64 %}
+                                        <img src="{{ jogo.time_visitante.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
+                                    {% endif %}
+                                    <span class="ms-2">{{ jogo.time_visitante.sigla }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-save"></i> Salvar Meus Palpites
+                </button>
+                <a href="{{ url_for('painel') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-undo"></i> Voltar
+                </a>
+            </div>
+
+        </form>
+    </div>
+{% endblock %}

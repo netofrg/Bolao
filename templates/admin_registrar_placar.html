@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Placar Oficial - Rodada {{ rodada.numero }}{% endblock %}
+
+{% block content %}
+
+<div class="container my-4">
+    
+    <h1 class="mb-4 text-primary"><i class="fas fa-tools"></i> Painel de Administração</h1>
+
+    <nav class="nav nav-tabs nav-fill mb-4">
+        <a class="nav-link" 
+           href="{{ url_for('admin_times') }}">
+            <i class="fas fa-users"></i> Gerenciar Times
+        </a>
+        <a class="nav-link" href="{{ url_for('admin_rodadas') }}">
+            <i class="fas fa-calendar-alt"></i> Gerenciar Rodadas
+        </a>
+        <a class="nav-link active" href="{{ url_for('placar_admin_lista') }}">
+            <i class="fas fa-trophy"></i> Registrar Placar
+        </a>
+        <a class="nav-link" 
+           href="{{ url_for('admin_status_apostas') }}">
+            <i class="fas fa-list-check"></i> Status de Apostas
+        </a>
+    </nav>
+    <div class="card shadow-lg">
+        <div class="card-header bg-warning text-dark">
+            <h2 class="mb-0">
+                <i class="fas fa-trophy"></i> Registrar Placar Oficial - Rodada **{{ rodada.numero }}**
+            </h2>
+        </div>
+        <div class="card-body">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <a href="{{ url_for('placar_admin_lista') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+                <p class="mb-0 text-muted">
+                    Data Limite para Apostas: <strong>{{ rodada.data_limite_apostas }}</strong>
+                </p>
+            </div>
+            
+            <form method="POST" action="{{ url_for('placar_admin_salvar', rodada_id=rodada._id) }}">
+                
+                <div class="list-group mb-4">
+                    {% for jogo in rodada.jogos %}
+                    <div class="list-group-item d-flex align-items-center justify-content-between p-3 
+                        {% if jogo.finalizado %}list-group-item-success{% else %}list-group-item-light{% endif %}">
+                        
+                        <div class="col-5">
+                            <strong class="text-nowrap">
+                                {{ get_time_sigla(jogo.time_casa_id) }} 
+                                <span class="text-muted mx-2">vs</span> 
+                                {{ get_time_sigla(jogo.time_visitante_id) }}
+                            </strong>
+                        </div>
+                        
+                        <div class="col-4 d-flex align-items-center justify-content-end">
+                            <input 
+                                type="number" 
+                                name="placar_casa_{{ jogo.id_jogo }}" 
+                                placeholder="CASA" 
+                                min="0" 
+                                class="form-control form-control-sm text-center" 
+                                style="width: 60px;"
+                                value="{% if jogo.placar_casa is not none %}{{ jogo.placar_casa }}{% endif %}"
+                            >
+                            <span class="mx-2">:</span>
+                            <input 
+                                type="number" 
+                                name="placar_visitante_{{ jogo.id_jogo }}" 
+                                placeholder="VISITANTE" 
+                                min="0"
+                                class="form-control form-control-sm text-center"
+                                style="width: 60px;"
+                                value="{% if jogo.placar_visitante is not none %}{{ jogo.placar_visitante }}{% endif %}"
+                            >
+                        </div>
+                        
+                        <div class="col-3 text-end">
+                            {% if jogo.finalizado %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> FINALIZADO</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pendente</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3">
+                    <button type="submit" class="btn btn-primary btn-lg w-75">
+                        <i class="fas fa-save"></i> Salvar Placares da Rodada
+                    </button>
+
+                    <form method="POST" action="{{ url_for('calcular_ranking', rodada_id=rodada._id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja CALCULAR e PONTUAR esta Rodada? Certifique-se de que todos os placares estão corretos.');">
+                        <button type="submit" class="btn btn-danger btn-lg w-100">
+                            <i class="fas fa-calculator"></i> Pontuar
+                        </button>
+                    </form>
+                </div>
+                
+            </form>
+            
+        </div>
+    </div>
+</div>
+
+{% endblock %}
