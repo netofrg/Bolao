@@ -18,7 +18,6 @@
         <form method="POST" action="{{ url_for('salvar_aposta', rodada_id=rodada._id) }}">
             
             {% for jogo in rodada.jogos %}
-                {# CRÍTICO: Usamos 'jogo.id_jogo' para corresponder à correção no Flask #}
                 {% set jogo_id_str = jogo.id_jogo %} 
                 
                 {# Lógica para preencher o palpite existente #}
@@ -36,7 +35,7 @@
                     {% endfor %}
                 {% endif %}
 
-                {# Bloco do Jogo - Alinhamento Horizontal (Escudo/Sigla + Textbox) #}
+                {# Bloco do Jogo - Alinhamento Horizontal #}
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="card-title text-center text-muted">Jogo {{ loop.index }}</h5>
@@ -55,12 +54,14 @@
                                 <input 
                                     type="text" 
                                     name="placar_casa_{{ jogo_id_str }}" 
-                                    {# min="0" REMOVIDO PARA EVITAR CONFLITO COM type="text" #}
                                     required
                                     placeholder="Placar Casa"
                                     value="{{ palpite_casa }}"
-                                    class="form-control form-control-lg text-center"
-                                    style="max-width: 100px;" 
+                                    
+                                    {# CORREÇÃO DE FOCO E CSS: classes position-relative e z-index #}
+                                    class="form-control form-control-lg text-center position-relative cursor-pointer"
+                                    style="max-width: 100px; z-index: 10;" 
+                                    
                                     pattern="\d*" 
                                 >
                             </div>
@@ -74,12 +75,14 @@
                                 <input 
                                     type="text" 
                                     name="placar_visitante_{{ jogo_id_str }}" 
-                                    {# min="0" REMOVIDO PARA EVITAR CONFLITO COM type="text" #}
                                     required
                                     placeholder="Placar Visitante"
                                     value="{{ palpite_visitante }}"
-                                    class="form-control form-control-lg text-center"
-                                    style="max-width: 100px;" 
+                                    
+                                    {# CORREÇÃO DE FOCO E CSS: classes position-relative e z-index #}
+                                    class="form-control form-control-lg text-center position-relative cursor-pointer"
+                                    style="max-width: 100px; z-index: 10;" 
+                                    
                                     pattern="\d*"
                                 >
                                 
@@ -101,9 +104,37 @@
                 </button>
                 <a href="{{ url_for('painel') }}" class="btn btn-secondary btn-lg">
                     <i class="fas fa-undo"></i> Voltar
-                </a>
+                </button>
             </div>
 
         </form>
     </div>
+
+    {# NOVO BLOCO DE SCRIPTS PARA FORÇAR O FOCO E CORRIGIR BUGS DE TECLADO NO MOBILE #}
+    {% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputsPlacar = document.querySelectorAll('input[name^="placar_"]');
+            
+            inputsPlacar.forEach(input => {
+                // Tenta forçar o foco no primeiro toque
+                input.addEventListener('touchstart', function(e) {
+                    // Impede o comportamento padrão, como o zoom no iOS
+                    e.preventDefault(); 
+                    
+                    // Garante que o input receba o foco para que o teclado funcione
+                    this.focus();
+                });
+                
+                // Tenta rolar o campo para a visualização quando focado (útil para teclados grandes)
+                input.addEventListener('focus', function() {
+                    setTimeout(() => {
+                        this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                });
+            });
+        });
+    </script>
+    {% endblock %}
+
 {% endblock %}
