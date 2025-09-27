@@ -3,111 +3,122 @@
 {% block title %}Painel do Bolão{% endblock %}
 
 {% block content %}
-    <div class="container my-4">
-        <h2 class="mb-4">Painel do Bolão</h2>
+<div class="container my-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4 text-primary">⚽ Bem-vindo ao Painel!</h1>
+        </div>
+    </div>
 
-        <div class="row">
-            
-            <div class="col-md-8">
-                
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                {# Bloco da Próxima Rodada Aberta #}
-                {% if rodada_aberta %}
-                    <div class="card shadow mb-4">
-                        <div class="card-header bg-primary text-white fs-5">
-                            Próxima Rodada Aberta: Rodada {{ rodada_aberta.numero }}
-                        </div>
-                        <div class="card-body">
-                            {# NOVO CÓDIGO DE FORMATAÇÃO DE DATA #}
-                            {% set data_str = rodada_aberta.data_limite_apostas | replace('T', ' ') %}
-                            <p class="card-text">
-                                Você tem até **{{ data_str.split(' ')[0].split('-') | reverse | join('/') }} às {{ data_str.split(' ')[1][:5] }}** para enviar ou alterar seus palpites.
-                            </p>
-                            {# FIM DA FORMATAÇÃO #}
-                            <a href="{{ url_for('apostar') }}" class="btn btn-success btn-lg">
-                                <i class="fas fa-edit me-2"></i> Apostar Agora
-                            </a>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="alert alert-warning">
-                        Nenhuma rodada aberta para apostas no momento.
-                    </div>
-                {% endif %}
-
-                <h3 class="mt-5 mb-3">Rodadas Disponíveis para Consulta/Aposta</h3>
-
-                {# Bloco de Rodadas Disponíveis #}
-                {% if rodadas_disponiveis %}
-                    {% for rodada in rodadas_disponiveis %}
-                        <div class="card mb-3">
-                            <div class="card-body d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5 class="card-title">Rodada {{ rodada.numero }}</h5>
-                                    
-                                    {# NOVO CÓDIGO DE FORMATAÇÃO DE DATA #}
-                                    {% set data_str = rodada.data_limite_apostas | replace('T', ' ') %}
-                                    <p class="card-text text-muted small mb-0">
-                                        Prazo: {{ data_str.split(' ')[0].split('-') | reverse | join('/') }} às {{ data_str.split(' ')[1][:5] }}
-                                    </p>
-                                    {# FIM DA FORMATAÇÃO #}
-                                </div>
-                                
-                                <div>
-                                    {% if rodada_aberta and rodada._id == rodada_aberta._id %}
-                                        <span class="badge bg-success ms-2">Já na tela</span>
-                                    {% else %}
-                                        <a href="{{ url_for('consulta_palpites', rodada_id=rodada._id) }}" class="btn btn-sm btn-outline-info">
-                                            Consultar
-                                        </a>
-                                    {% endif %}
-                                </div>
+    <!-- Seção de Rodada Ativa para Aposta -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4 bg-light">
+                    
+                    {% if rodada_aberta %}
+                        {% set rodada_id_str = rodada_aberta._id %}
+                        
+                        <h3 class="card-title text-success mb-3">Rodada Aberta: {{ rodada_aberta.numero }}</h3>
+                        <p class="text-muted">Faça seu palpite antes que o prazo termine!</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <i class="fas fa-clock text-info"></i> Prazo Final:
+                                <span class="fw-bold">{{ rodada_aberta.data_limite_apostas | replace('T', ' ') }}</span>
                             </div>
+                            
+                            {% if palpites_usuario[rodada_id_str] %}
+                                <span class="badge bg-success p-2">
+                                    <i class="fas fa-check-circle"></i> Palpite Enviado
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark p-2">
+                                    <i class="fas fa-exclamation-triangle"></i> Pendente
+                                </span>
+                            {% endif %}
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <p>Nenhuma rodada cadastrada ou disponível para consulta.</p>
-                {% endif %}
 
-            </div>
-
-            {# COLUNA LATERAL: ACESSO RÁPIDO #}
-            <div class="col-md-4">
-                
-                <div class="card shadow mb-4">
-                    <div class="card-header bg-secondary text-white">
-                        <i class="fas fa-bolt"></i> Acesso Rápido
-                    </div>
-                    <ul class="list-group list-group-flush">
+                        <!-- Botão de Aposta (Protegido pela verificação do rodada_aberta) -->
+                        <a href="{{ url_for('apostar', rodada_id=rodada_id_str) }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-edit"></i> 
+                            {% if palpites_usuario[rodada_id_str] %}
+                                Editar Palpites da Rodada {{ rodada_aberta.numero }}
+                            {% else %}
+                                Apostar Agora na Rodada {{ rodada_aberta.numero }}
+                            {% endif %}
+                        </a>
                         
-                        <li class="list-group-item">
-                            <a href="{{ url_for('ranking') }}" class="text-decoration-none">
-                                <i class="fas fa-trophy me-2"></i> Ranking Geral
-                            </a>
-                        </li>
-                        
-                        <li class="list-group-item">
-                            <a href="{{ url_for('minhas_apostas') }}" class="text-decoration-none text-primary">
-                                <i class="fas fa-eye me-2"></i> Consultar Minhas Apostas
-                            </a>
-                        </li>
+                    {% else %}
+                        <h3 class="card-title text-warning mb-3">Nenhuma Rodada Ativa para Apostas</h3>
+                        <p class="text-muted">Aguarde o administrador criar a próxima rodada ou confira o histórico abaixo.</p>
+                    {% endif %}
 
-                        <li class="list-group-item">
-                            <a href="{{ url_for('logout') }}" class="text-decoration-none text-danger">
-                                <i class="fas fa-sign-out-alt me-2"></i> Sair
-                            </a>
-                        </li>
-                    </ul>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Histórico de Rodadas -->
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-3 text-secondary">Histórico e Resultados</h2>
+
+            {% if rodadas_disponiveis %}
+                <ul class="list-group">
+                    {% for rodada in rodadas_disponiveis %}
+                        {% set id_rodada = rodada._id %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <strong>Rodada {{ rodada.numero }}</strong>
+                                <span class="text-muted d-block small">Prazo: {{ rodada.data_limite_apostas | replace('T', ' ') }}</span>
+                            </div>
+                            
+                            <div class="text-end">
+                                {% if palpites_usuario[id_rodada] %}
+                                    <span class="badge bg-primary me-2">Palpitou</span>
+                                {% else %}
+                                    <span class="badge bg-secondary me-2">Não Palpitou</span>
+                                {% endif %}
+
+                                <!-- Ação: Visualizar Palpites/Resultados -->
+                                <!-- Assumindo que você terá uma rota 'ver_resultados' ou similar -->
+                                <a href="#" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i> Detalhes
+                                </a>
+                                
+                                <!-- Botão de Aposta (Aparece se for uma rodada futura ou a atual) -->
+                                {% if rodada_aberta and rodada._id == rodada_aberta._id %}
+                                    <a href="{{ url_for('apostar', rodada_id=id_rodada) }}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-pen"></i> Apostar/Editar
+                                    </a>
+                                {% endif %}
+
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="alert alert-info">Nenhuma rodada encontrada no sistema. O administrador precisa criar uma.</p>
+            {% endif %}
 
         </div>
     </div>
+    
+    <!-- Seção Admin (Apenas se logado como admin) -->
+    {% if is_admin %}
+        <div class="row mt-5">
+            <div class="col-12">
+                <h2 class="mb-3 text-danger">🛠️ Ações de Administrador</h2>
+                <a href="{{ url_for('criar_rodada') }}" class="btn btn-danger me-2">
+                    <i class="fas fa-plus-circle"></i> Criar Nova Rodada
+                </a>
+                <a href="{{ url_for('gerenciar_rodadas') }}" class="btn btn-danger">
+                    <i class="fas fa-cog"></i> Gerenciar Rodadas
+                </a>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
 {% endblock %}

@@ -436,6 +436,61 @@ def serialize_mongo_object(data):
 #     return decorated_function
 
 # --- ROTA DO PAINEL CORRIGIDA ---
+from bson.objectid import ObjectId
+from datetime import datetime
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+
+# --- DEFINIÇÕES OBRIGATÓRIAS ---
+
+# 1. Defina sua instância do Flask
+# app = Flask(__name__) 
+
+# 2. Defina suas coleções do MongoDB
+# rodadas_collection = db['rodadas']
+# palpites_collection = db['palpites']
+
+# 3. Defina o formato de data (ESCOLHA UM E DESCOMENTE)
+# CORRIGIDO: O formato de data do seu DB ('2025-09-28T15:00') não possui segundos.
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M'
+# Se for o formato brasileiro (DD/MM/AAAA HH:MM), use:
+# DATETIME_FORMAT = '%d/%m/%Y %H:%M'
+
+# --- FUNÇÃO DE SERIALIZAÇÃO ESSENCIAL ---
+# Esta função converte ObjectIds e outros tipos que o Jinja2 não entende
+# em strings e tipos básicos de Python.
+def serialize_mongo_object(data):
+    """
+    Serializa ObjectIds para string em um objeto ou lista de objetos do MongoDB.
+    """
+    if isinstance(data, list):
+        return [serialize_mongo_object(item) for item in data]
+    
+    if isinstance(data, dict):
+        new_data = {}
+        for key, value in data.items():
+            if isinstance(value, ObjectId):
+                new_data[key] = str(value)
+            elif isinstance(value, (list, dict)):
+                new_data[key] = serialize_mongo_object(value)
+            else:
+                new_data[key] = value
+        return new_data
+    return data
+
+# --- FUNÇÃO DE LOGIN_REQUIRED (EXEMPLO) ---
+# Se a sua função login_required não estiver definida, você também terá um erro 500
+# DESCOMENTE e use esta versão se não tiver a sua:
+# def login_required(f):
+#     @wraps(f)
+#     def decorated_function(*args, **kwargs):
+#         if 'usuario_id' not in session:
+#             flash('Você precisa estar logado para acessar esta página.', 'warning')
+#             return redirect(url_for('login'))
+#         return f(*args, **kwargs)
+#     return decorated_function
+
+# --- ROTA DO PAINEL CORRIGIDA ---
 @app.route('/painel')
 @login_required
 def painel():
@@ -455,7 +510,7 @@ def painel():
         for rodada in todas_rodadas:
             try:
                 # 1. Converte a data do DB (string) para objeto datetime para comparação precisa
-                # OBSERVAÇÃO: O DATETIME_FORMAT deve ser a string correta!
+                # OBSERVAÇÃO: O DATETIME_FORMAT agora é '%Y-%m-%dT%H:%M'
                 data_limite = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
                 
                 # 2. Verifica se o prazo ainda não passou
@@ -473,6 +528,7 @@ def painel():
 
             except (ValueError, TypeError) as e:
                 # Ignora rodadas com formato de data inválido ou faltando o campo
+                # Esta mensagem de alerta deve parar de aparecer após a correção do DATETIME_FORMAT
                 print(f"Alerta: Rodada {rodada.get('numero')} possui formato de data inválido. Erro: {e}")
                 continue 
 
@@ -498,6 +554,28 @@ def painel():
                 palpites_usuario[rodada_id_str] = True
         else:
              palpites_usuario = {}
+
+
+        # 5. Envia as variáveis para o template
+        return render_template('painel.html', 
+                               is_admin=session.get('is_admin', False),
+                               rodada_aberta=rodada_aberta_serializada, 
+                               rodadas_disponiveis=rodadas_disponiveis_serializadas,
+                               palpites_usuario=palpites_usuario)
+
+    except Exception as e:
+        # Se ocorrer um erro interno, ele será exibido no terminal do Flask (melhor para debug)
+        print(f"ERRO CRÍTICO no Painel: {e}")
+        # Retorna para o login em caso de falha.
+        # Adicionado tratamento de erro específico para a URL
+        if "Could not build url" in str(e):
+             # Isso sugere que rodada_aberta não foi encontrada, mas o erro está no painel.html
+             flash("Erro: O painel não conseguiu carregar as rodadas. Verifique o seu código HTML.", 'danger')
+        else:
+            flash("Ocorreu um erro interno ao carregar o painel. Tente novamente.", 'danger')
+        
+        return redirect(url_for('login'))
+
 
 
         # 5. Envia as variáveis para o template
