@@ -381,6 +381,61 @@ def serialize_mongo_object(data):
 #     return decorated_function
 
 # --- ROTA DO PAINEL CORRIGIDA ---
+from bson.objectid import ObjectId
+from datetime import datetime
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+
+# --- DEFINIÇÕES OBRIGATÓRIAS ---
+
+# 1. Defina sua instância do Flask
+# app = Flask(__name__) 
+
+# 2. Defina suas coleções do MongoDB
+# rodadas_collection = db['rodadas']
+# palpites_collection = db['palpites']
+
+# 3. Defina o formato de data (ESCOLHA UM E DESCOMENTE)
+# Se o seu formato de data no DB for '2025-09-27T15:00', use:
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+# Se for o formato brasileiro (DD/MM/AAAA HH:MM), use:
+# DATETIME_FORMAT = '%d/%m/%Y %H:%M'
+
+# --- FUNÇÃO DE SERIALIZAÇÃO ESSENCIAL ---
+# Esta função converte ObjectIds e outros tipos que o Jinja2 não entende
+# em strings e tipos básicos de Python.
+def serialize_mongo_object(data):
+    """
+    Serializa ObjectIds para string em um objeto ou lista de objetos do MongoDB.
+    """
+    if isinstance(data, list):
+        return [serialize_mongo_object(item) for item in data]
+    
+    if isinstance(data, dict):
+        new_data = {}
+        for key, value in data.items():
+            if isinstance(value, ObjectId):
+                new_data[key] = str(value)
+            elif isinstance(value, (list, dict)):
+                new_data[key] = serialize_mongo_object(value)
+            else:
+                new_data[key] = value
+        return new_data
+    return data
+
+# --- FUNÇÃO DE LOGIN_REQUIRED (EXEMPLO) ---
+# Se a sua função login_required não estiver definida, você também terá um erro 500
+# DESCOMENTE e use esta versão se não tiver a sua:
+# def login_required(f):
+#     @wraps(f)
+#     def decorated_function(*args, **kwargs):
+#         if 'usuario_id' not in session:
+#             flash('Você precisa estar logado para acessar esta página.', 'warning')
+#             return redirect(url_for('login'))
+#         return f(*args, **kwargs)
+#     return decorated_function
+
+# --- ROTA DO PAINEL CORRIGIDA ---
 @app.route('/painel')
 @login_required
 def painel():
@@ -400,6 +455,7 @@ def painel():
         for rodada in todas_rodadas:
             try:
                 # 1. Converte a data do DB (string) para objeto datetime para comparação precisa
+                # OBSERVAÇÃO: O DATETIME_FORMAT deve ser a string correta!
                 data_limite = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
                 
                 # 2. Verifica se o prazo ainda não passou
@@ -430,14 +486,18 @@ def painel():
         rodadas_disponiveis_serializadas = serialize_mongo_object(rodadas_disponiveis)
         
         # 4. Busca os palpites do usuário para todas as rodadas (necessário para o painel)
-        usuario_object_id = ObjectId(session['usuario_id'])
-        
-        # Cria um mapa de rodada_id -> palpite_existente (para marcar no template)
-        palpites_usuario = {}
-        for palpite in palpites_collection.find({'usuario_id': usuario_object_id}):
-            # Converte ObjectId para string para facilitar a comparação no template
-            rodada_id_str = str(palpite['rodada_id'])
-            palpites_usuario[rodada_id_str] = True
+        # Só tenta buscar se o 'usuario_id' estiver na sessão (garantido pelo login_required, mas é bom checar)
+        if 'usuario_id' in session:
+            usuario_object_id = ObjectId(session['usuario_id'])
+            
+            # Cria um mapa de rodada_id -> palpite_existente (para marcar no template)
+            palpites_usuario = {}
+            for palpite in palpites_collection.find({'usuario_id': usuario_object_id}):
+                # Converte ObjectId para string para facilitar a comparação no template
+                rodada_id_str = str(palpite['rodada_id'])
+                palpites_usuario[rodada_id_str] = True
+        else:
+             palpites_usuario = {}
 
 
         # 5. Envia as variáveis para o template
@@ -453,6 +513,7 @@ def painel():
         # Retorna para o login em caso de falha.
         flash("Ocorreu um erro interno ao carregar o painel. Tente novamente.", 'danger')
         return redirect(url_for('login'))
+
 
 
 
