@@ -405,6 +405,10 @@ def logout():
 @app.route('/salvar_aposta/<rodada_id>', methods=['POST'])
 @login_required
 def salvar_aposta(rodada_id):
+    """
+    Processa o formulário, salva os palpites e verifica o limite de aposta.
+    CORRIGIDO: Valores vazios são tratados como 0.
+    """
     try:
         rodada_object_id = ObjectId(rodada_id)
         rodada = rodadas_collection.find_one({'_id': rodada_object_id})
@@ -415,7 +419,8 @@ def salvar_aposta(rodada_id):
 
         # --- VERIFICAÇÃO DE DATA E HORA LIMITE ---
         try:
-            data_limite_aposta = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
+            # Garanta que DATETIME_FORMAT esteja definido no seu app.py
+            data_limite_aposta = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT) 
         except (ValueError, TypeError):
             flash("Erro interno: Formato da data limite da rodada inválido.", 'danger')
             return redirect(url_for('painel'))
@@ -431,6 +436,7 @@ def salvar_aposta(rodada_id):
         palpites = []
 
         for jogo in rodada['jogos']:
+            
             # Usar sempre o id_jogo como identificador do jogo
             jogo_identificador = str(jogo['id_jogo'])
 
@@ -441,11 +447,12 @@ def salvar_aposta(rodada_id):
             placar_visitante_str = request.form.get(campo_visitante)
 
             try:
+                # CORREÇÃO: Se a string for vazia/None, usa 0 (zero)
                 placar_casa = int(placar_casa_str) if placar_casa_str and placar_casa_str.strip() != '' else 0
                 placar_visitante = int(placar_visitante_str) if placar_visitante_str and placar_visitante_str.strip() != '' else 0
             except ValueError:
                 flash('Os placares devem ser números inteiros (0 ou mais).', 'danger')
-                return redirect(url_for('apostar', rodada_id=rodada_id))
+                return redirect(url_for('apostar', rodada_id=rodada_id)) # Redireciona para a rota correta (GET)
 
             palpites.append({
                 'id_jogo': jogo_identificador,
@@ -473,7 +480,43 @@ def salvar_aposta(rodada_id):
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
+# Adicione esta função ao seu app.py, se ela estiver faltando.
+from bson.objectid import ObjectId
+from datetime import datetime
 
+# Certifique-se de que DATETIME_FORMAT e collections (rodadas_collection, palpites_collection)
+# estejam definidos no seu arquivo.
+
+@app.route('/apostar/<rodada_id>')
+@login_required
+def apostar(rodada_id):
+    """
+    Carrega a rodada e quaisquer palpites existentes para exibir o formulário.
+    """
+    try:
+        rodada_object_id = ObjectId(rodada_id)
+        
+        # 1. Busca a rodada
+        rodada = rodadas_collection.find_one({'_id': rodada_object_id})
+        if not rodada:
+            flash("Rodada não encontrada.", 'danger')
+            return redirect(url_for('painel'))
+
+        usuario_object_id = ObjectId(session['usuario_id'])
+        
+        # 2. Busca palpites existentes do usuário para pré-preencher
+        palpite_existente = palpites_collection.find_one({
+            'usuario_id': usuario_object_id,
+            'rodada_id': rodada_object_id
+        })
+
+        return render_template('apostar.html', rodada=rodada, palpite_existente=palpite_existente)
+
+    except Exception as e:
+        # AQUI VAI DAR 404 se a rota 'apostar' for chamada com ID inválido
+        # ou se o import de ObjectId estiver faltando.
+        flash(f"Erro ao carregar a página de aposta: {e}", 'danger')
+        return redirect(url_for('painel'))
 
 @app.route('/ranking')
 @login_required
