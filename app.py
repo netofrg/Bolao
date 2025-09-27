@@ -402,48 +402,6 @@ def logout():
 # ASSUMINDO QUE AS FUNÇÕES serialize_mongo_object e get_time_by_id ESTÃO DEFINIDAS EM OUTRO LUGAR
 # Se não estiverem, adicione as funções auxiliares que forneci anteriormente.
 
-@app.route('/apostar')
-@login_required
-def apostar():
-    """Exibe a rodada mais recente que ainda não atingiu a data limite, com dados completos dos times."""
-    
-    agora = datetime.now()
-    agora_str = agora.strftime(DATETIME_FORMAT)
-
-    rodada_aberta = rodadas_collection.find_one({
-        'data_limite_apostas': {'$gte': agora_str}
-    }, sort=[('numero', 1)])
-
-    if not rodada_aberta:
-        flash('Nenhuma rodada aberta para apostas no momento!', 'info')
-        return redirect(url_for('painel'))
-
-    # Antes de serializar, buscamos os dados completos dos times e anexamos aos jogos
-    # --- BLOCO CRÍTICO PARA O ESCUDO ---
-    for jogo in rodada_aberta['jogos']:
-        # Anexa o dicionário completo do time (inclui nome, sigla e escudo_base64)
-        jogo['time_casa'] = get_time_by_id(jogo['time_casa_id'])
-        jogo['time_visitante'] = get_time_by_id(jogo['time_visitante_id'])
-    # -----------------------------------
-    
-    # Serializa a rodada APÓS anexar os dados dos times
-    serializable_rodada = serialize_mongo_object(rodada_aberta)
-    rodada_id = serializable_rodada['_id']
-
-    # Note: O campo de user_id no palpite geralmente é 'user_id' e não 'usuario_id' 
-    # (use o nome correto do seu campo de sessão e DB, aqui estou usando 'usuario_id' como no seu código)
-    palpite_existente = palpites_collection.find_one({
-        'usuario_id': ObjectId(session['usuario_id']),
-        'rodada_id': ObjectId(rodada_id)
-    })
-
-    serializable_palpite = serialize_mongo_object(palpite_existente) if palpite_existente else None
-
-    return render_template('apostar.html',
-                           rodada=serializable_rodada,
-                           palpite_existente=serializable_palpite)
-
-
 @app.route('/salvar_aposta/<rodada_id>', methods=['POST'])
 @login_required
 def salvar_aposta(rodada_id):
@@ -473,8 +431,8 @@ def salvar_aposta(rodada_id):
         palpites = []
 
         for jogo in rodada['jogos']:
-            # Usar sempre o _id como identificador do jogo
-            jogo_identificador = str(jogo['_id'])
+            # Usar sempre o id_jogo como identificador do jogo
+            jogo_identificador = str(jogo['id_jogo'])
 
             campo_casa = f'placar_casa_{jogo_identificador}'
             campo_visitante = f'placar_visitante_{jogo_identificador}'
@@ -515,6 +473,7 @@ def salvar_aposta(rodada_id):
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
+
 
 @app.route('/ranking')
 @login_required
