@@ -449,7 +449,8 @@ def apostar():
 def salvar_aposta(rodada_id):
     """
     Processa o formulário, salva os palpites e verifica o limite de aposta.
-    CORRIGIDO: Usa 'id_jogo' como identificador para corresponder ao formulário.
+    CORRIGIDO: O valor padrão de placares vazios/nulos no Flask é agora 0,
+               evitando o erro "Todos os palpites devem ser preenchidos."
     """
     try:
         rodada_object_id = ObjectId(rodada_id)
@@ -479,11 +480,9 @@ def salvar_aposta(rodada_id):
 
         for jogo in rodada['jogos']:
             
-            # CORREÇÃO CRÍTICA: Prioriza o uso do identificador 'id_jogo',
-            # que é o campo que existe na sua estrutura de dados e foi usado no HTML
             if 'id_jogo' not in jogo:
-                 flash('Erro fatal: Nenhum identificador (id_jogo) encontrado para um jogo. Verifique o DB.', 'danger')
-                 return redirect(url_for('apostar'))
+                flash('Erro fatal: Nenhum identificador (id_jogo) encontrado para um jogo. Verifique o DB.', 'danger')
+                return redirect(url_for('apostar'))
 
             jogo_identificador = str(jogo['id_jogo'])
             
@@ -495,20 +494,19 @@ def salvar_aposta(rodada_id):
             placar_visitante_str = request.form.get(campo_visitante)
 
             try:
-                # Trata strings vazias ou None como None (vazio)
-                placar_casa = int(placar_casa_str) if placar_casa_str is not None and placar_casa_str.strip() != '' else None
-                placar_visitante = int(placar_visitante_str) if placar_visitante_str is not None and placar_visitante_str.strip() != '' else None
+                # CORREÇÃO: Se a string for vazia/None, use 0 em vez de None.
+                # Isso satisfaz a sua lógica de "preenchido".
+                placar_casa = int(placar_casa_str) if placar_casa_str is not None and placar_casa_str.strip() != '' else 0
+                placar_visitante = int(placar_visitante_str) if placar_visitante_str is not None and placar_visitante_str.strip() != '' else 0
             except ValueError:
                 flash('Os placares devem ser números inteiros (0 ou mais).', 'danger')
                 return redirect(url_for('apostar'))
 
-            # Validação: Se um deles for None, o palpite não foi preenchido
-            if placar_casa is None or placar_visitante is None:
-                flash('Todos os palpites devem ser preenchidos.', 'danger')
-                return redirect(url_for('apostar'))
-
+            # O BLOCO DE VALIDAÇÃO FOI REMOVIDO, pois agora o valor padrão é 0.
+            # Se o formulário envia 0, ele é considerado preenchido.
+            
             palpites.append({
-                'id_jogo': jogo_identificador, # Salva o identificador que funciona
+                'id_jogo': jogo_identificador, 
                 'placar_casa': placar_casa,
                 'placar_visitante': placar_visitante
             })
@@ -533,7 +531,6 @@ def salvar_aposta(rodada_id):
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
-
 @app.route('/ranking')
 @login_required
 def ranking():
