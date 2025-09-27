@@ -53,7 +53,7 @@
                                 </label>
                                 
                                 <input 
-                                    type="number" 
+                                    type="text" 
                                     name="placar_casa_{{ jogo_id_str }}" 
                                     min="0"
                                     required
@@ -61,6 +61,7 @@
                                     value="{{ palpite_casa }}"
                                     class="form-control form-control-lg text-center"
                                     style="max-width: 100px;" 
+                                    pattern="\d*" 
                                 >
                             </div>
 
@@ -71,7 +72,7 @@
                             <div class="col-5 d-flex justify-content-start align-items-center">
                                 
                                 <input 
-                                    type="number" 
+                                    type="text" 
                                     name="placar_visitante_{{ jogo_id_str }}" 
                                     min="0"
                                     required
@@ -79,6 +80,7 @@
                                     value="{{ palpite_visitante }}"
                                     class="form-control form-control-lg text-center"
                                     style="max-width: 100px;" 
+                                    pattern="\d*"
                                 >
                                 
                                 <label class="fw-bold fs-5 ms-3 d-flex align-items-center mb-0">
