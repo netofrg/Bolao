@@ -443,16 +443,17 @@ def apostar():
                            rodada=serializable_rodada,
                            palpite_existente=serializable_palpite)
 
-
 @app.route('/salvar_aposta/<rodada_id>', methods=['POST'])
 @login_required
 def salvar_aposta(rodada_id):
     """
-    Processa o formulário, salva os palpites e verifica o limite de aposta.
-    CORRIGIDO: Usa 'id_jogo' como identificador para corresponder ao formulário.
+    Processa o formulário e salva os palpites.
+    CORRIGIDO: Valores vazios são tratados como 0 (zero) e o identificador do jogo
+    agora usa '_id' para corresponder ao HTML.
     """
     try:
         rodada_object_id = ObjectId(rodada_id)
+        # Assumindo que DATETIME_FORMAT e collections estão definidas globalmente
         rodada = rodadas_collection.find_one({'_id': rodada_object_id})
 
         if not rodada:
@@ -461,6 +462,7 @@ def salvar_aposta(rodada_id):
 
         # --- VERIFICAÇÃO DE DATA E HORA LIMITE ---
         try:
+            # Garante que DATETIME_FORMAT está definido no topo do seu arquivo Python.
             data_limite_aposta = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
         except (ValueError, TypeError):
             flash("Erro interno: Formato da data limite da rodada inválido.", 'danger')
@@ -479,36 +481,34 @@ def salvar_aposta(rodada_id):
 
         for jogo in rodada['jogos']:
             
-            # CORREÇÃO CRÍTICA: Prioriza o uso do identificador 'id_jogo',
-            # que é o campo que existe na sua estrutura de dados e foi usado no HTML
-            if 'id_jogo' not in jogo:
-                 flash('Erro fatal: Nenhum identificador (id_jogo) encontrado para um jogo. Verifique o DB.', 'danger')
-                 return redirect(url_for('apostar'))
+            # CORREÇÃO CRÍTICA: Usa '_id' (do MongoDB), que é o que o HTML está enviando.
+            if '_id' not in jogo:
+                 flash('Erro fatal: Nenhum identificador (_id) encontrado para um jogo. Verifique o DB.', 'danger')
+                 return redirect(url_for('apostar', rodada_id=rodada_id))
 
-            jogo_identificador = str(jogo['id_jogo'])
+            jogo_identificador = str(jogo['_id']) # <--- MUDANÇA AQUI: de 'id_jogo' para '_id'
             
-            # Os nomes dos campos que o Flask deve buscar no request.form
             campo_casa = f'placar_casa_{jogo_identificador}'
             campo_visitante = f'placar_visitante_{jogo_identificador}'
 
-            placar_casa_str = request.form.get(campo_casa)
-            placar_visitante_str = request.form.get(campo_visitante)
+            # Usa request.form.get com string vazia como padrão, caso o campo não exista
+            placar_casa_str = request.form.get(campo_casa, '')
+            placar_visitante_str = request.form.get(campo_visitante, '')
 
             try:
-                # Trata strings vazias ou None como None (vazio)
-                placar_casa = int(placar_casa_str) if placar_casa_str is not None and placar_casa_str.strip() != '' else None
-                placar_visitante = int(placar_visitante_str) if placar_visitante_str is not None and placar_visitante_str.strip() != '' else None
+                # CORREÇÃO CHAVE: Converte para inteiro (int) ou usa 0 se for string vazia após strip()
+                placar_casa = int(placar_casa_str) if placar_casa_str.strip() != '' else 0
+                placar_visitante = int(placar_visitante_str) if placar_visitante_str.strip() != '' else 0
             except ValueError:
+                # Isso captura se o usuário digitou algo que não é um número
                 flash('Os placares devem ser números inteiros (0 ou mais).', 'danger')
-                return redirect(url_for('apostar'))
+                return redirect(url_for('apostar', rodada_id=rodada_id))
 
-            # Validação: Se um deles for None, o palpite não foi preenchido
-            if placar_casa is None or placar_visitante is None:
-                flash('Todos os palpites devem ser preenchidos.', 'danger')
-                return redirect(url_for('apostar'))
+            # A validação de 'None' foi removida (o que está certo)
 
             palpites.append({
-                'id_jogo': jogo_identificador, # Salva o identificador que funciona
+                # Salva o identificador correto que foi usado no formulário
+                'id_jogo': jogo_identificador, 
                 'placar_casa': placar_casa,
                 'placar_visitante': placar_visitante
             })
@@ -530,9 +530,12 @@ def salvar_aposta(rodada_id):
         flash(f'Palpites da Rodada {rodada["numero"]} salvos com sucesso!', 'success')
 
     except Exception as e:
+        # Garante que, se houver um erro, o usuário seja redirecionado corretamente
+        print(f"ERRO AO SALVAR APOSTA: {e}") 
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
+
 
 @app.route('/ranking')
 @login_required
