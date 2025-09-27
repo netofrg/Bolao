@@ -55,7 +55,7 @@
                                 <input 
                                     type="text" 
                                     name="placar_casa_{{ jogo_id_str }}" 
-                                    min="0"
+                                    {# min="0" REMOVIDO PARA EVITAR CONFLITO COM type="text" #}
                                     required
                                     placeholder="Placar Casa"
                                     value="{{ palpite_casa }}"
@@ -74,7 +74,7 @@
                                 <input 
                                     type="text" 
                                     name="placar_visitante_{{ jogo_id_str }}" 
-                                    min="0"
+                                    {# min="0" REMOVIDO PARA EVITAR CONFLITO COM type="text" #}
                                     required
                                     placeholder="Placar Visitante"
                                     value="{{ palpite_visitante }}"
