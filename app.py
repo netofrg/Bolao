@@ -448,7 +448,7 @@ def apostar():
 def salvar_aposta(rodada_id):
     """
     Processa o formulário e salva os palpites.
-    CORRIGIDO: Valores vazios são tratados como 0 (zero) e o identificador do jogo
+    CORRIGIDO: Valores vazios são tratados como 0 (zero). O identificador do jogo
     agora usa '_id' (do MongoDB) como prioridade para corresponder ao HTML.
     """
     try:
@@ -496,15 +496,24 @@ def salvar_aposta(rodada_id):
             # Usa request.form.get com string vazia como padrão, caso o campo não exista
             placar_casa_str = request.form.get(campo_casa, '')
             placar_visitante_str = request.form.get(campo_visitante, '')
+            
+            # Inicializa placares com 0. Se a conversão for bem-sucedida, eles serão sobrescritos.
+            placar_casa = 0
+            placar_visitante = 0
 
             try:
-                # CORREÇÃO CHAVE: Converte para inteiro (int) ou usa 0 se for string vazia após strip()
-                placar_casa = int(placar_casa_str) if placar_casa_str.strip() != '' else 0
-                placar_visitante = int(placar_visitante_str) if placar_visitante_str.strip() != '' else 0
+                # Se o campo não for vazio, tenta converter. Se for vazio, fica como 0 (linha acima).
+                if placar_casa_str.strip() != '':
+                    placar_casa = int(placar_casa_str)
+                
+                if placar_visitante_str.strip() != '':
+                    placar_visitante = int(placar_visitante_str)
+            
             except ValueError:
-                # Isso captura se o usuário digitou algo que não é um número
-                flash('Os placares devem ser números inteiros (0 ou mais).', 'danger')
-                return redirect(url_for('apostar', rodada_id=rodada_id))
+                # Isso captura se o usuário digitou algo que não é um número.
+                # Se cair aqui, o código simplesmente continua com os valores 0 já definidos.
+                flash('Um ou mais placares foram ignorados por não serem números inteiros.', 'warning')
+                pass # Continua o loop usando placar_casa = 0 e placar_visitante = 0
 
             # A validação de 'None' foi removida (o que está certo)
 
@@ -537,6 +546,7 @@ def salvar_aposta(rodada_id):
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
+
 
 
 
