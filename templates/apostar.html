@@ -62,8 +62,8 @@
                                     required
                                     placeholder="Placar"
                                     
-                                    {# CORREÇÃO: Usa string vazia ('') quando não há palpite. O Flask cuida do '0' #}
-                                    value="{{ palpite_casa if palpite_casa is not none and palpite_casa != '' else '' }}"
+                                    {# CORREÇÃO FINAL DE VALUE: Só preenche se for EDIÇÃO (palpite_existente é True) #}
+                                    value="{{ palpite_casa if palpite_existente else '' }}"
                                     
                                     class="form-control form-control-lg text-center"
                                     style="min-height: 50px;" 
@@ -94,8 +94,8 @@
                                     required
                                     placeholder="Placar"
                                     
-                                    {# CORREÇÃO: Usa string vazia ('') quando não há palpite. O Flask cuida do '0' #}
-                                    value="{{ palpite_visitante if palpite_visitante is not none and palpite_visitante != '' else '' }}"
+                                    {# CORREÇÃO FINAL DE VALUE: Só preenche se for EDIÇÃO (palpite_existente é True) #}
+                                    value="{{ palpite_visitante if palpite_existente else '' }}"
                                     
                                     class="form-control form-control-lg text-center"
                                     style="min-height: 50px;" 
