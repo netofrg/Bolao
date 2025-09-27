@@ -337,262 +337,58 @@ def login():
     return render_template('login.html')
 
 
-from bson.objectid import ObjectId
-from datetime import datetime
-from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-
-# Se o seu formato de data no DB for '2025-09-27T15:00', use:
-# DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
-# Se for o formato brasileiro, use:
-# DATETIME_FORMAT = '%d/%m/%Y %H:%M'
-
-# --- FUNÇÃO DE SERIALIZAÇÃO ESSENCIAL ---
-# Esta função converte ObjectIds e outros tipos que o Jinja2 não entende
-# em strings e tipos básicos de Python.
-def serialize_mongo_object(data):
-    """
-    Serializa ObjectIds para string em um objeto ou lista de objetos do MongoDB.
-    """
-    if isinstance(data, list):
-        return [serialize_mongo_object(item) for item in data]
-    
-    if isinstance(data, dict):
-        new_data = {}
-        for key, value in data.items():
-            if isinstance(value, ObjectId):
-                new_data[key] = str(value)
-            elif isinstance(value, (list, dict)):
-                new_data[key] = serialize_mongo_object(value)
-            else:
-                new_data[key] = value
-        return new_data
-    return data
-
-# --- FUNÇÃO DE LOGIN_REQUIRED (EXEMPLO) ---
-# Se a sua função login_required não estiver definida, você também terá um erro 500
-# def login_required(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         if 'usuario_id' not in session:
-#             flash('Você precisa estar logado para acessar esta página.', 'warning')
-#             return redirect(url_for('login'))
-#         return f(*args, **kwargs)
-#     return decorated_function
-
-# --- ROTA DO PAINEL CORRIGIDA ---
-from bson.objectid import ObjectId
-from datetime import datetime
-from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-
-# --- DEFINIÇÕES OBRIGATÓRIAS ---
-
-# 1. Defina sua instância do Flask
-# app = Flask(__name__) 
-
-# 2. Defina suas coleções do MongoDB
-# rodadas_collection = db['rodadas']
-# palpites_collection = db['palpites']
-
-# 3. Defina o formato de data (ESCOLHA UM E DESCOMENTE)
-# Se o seu formato de data no DB for '2025-09-27T15:00', use:
-DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
-# Se for o formato brasileiro (DD/MM/AAAA HH:MM), use:
-# DATETIME_FORMAT = '%d/%m/%Y %H:%M'
-
-# --- FUNÇÃO DE SERIALIZAÇÃO ESSENCIAL ---
-# Esta função converte ObjectIds e outros tipos que o Jinja2 não entende
-# em strings e tipos básicos de Python.
-def serialize_mongo_object(data):
-    """
-    Serializa ObjectIds para string em um objeto ou lista de objetos do MongoDB.
-    """
-    if isinstance(data, list):
-        return [serialize_mongo_object(item) for item in data]
-    
-    if isinstance(data, dict):
-        new_data = {}
-        for key, value in data.items():
-            if isinstance(value, ObjectId):
-                new_data[key] = str(value)
-            elif isinstance(value, (list, dict)):
-                new_data[key] = serialize_mongo_object(value)
-            else:
-                new_data[key] = value
-        return new_data
-    return data
-
-# --- FUNÇÃO DE LOGIN_REQUIRED (EXEMPLO) ---
-# Se a sua função login_required não estiver definida, você também terá um erro 500
-# DESCOMENTE e use esta versão se não tiver a sua:
-# def login_required(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         if 'usuario_id' not in session:
-#             flash('Você precisa estar logado para acessar esta página.', 'warning')
-#             return redirect(url_for('login'))
-#         return f(*args, **kwargs)
-#     return decorated_function
-
-# --- ROTA DO PAINEL CORRIGIDA ---
-from bson.objectid import ObjectId
-from datetime import datetime
-from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-
-# --- DEFINIÇÕES OBRIGATÓRIAS ---
-
-# 1. Defina sua instância do Flask
-# app = Flask(__name__) 
-
-# 2. Defina suas coleções do MongoDB
-# rodadas_collection = db['rodadas']
-# palpites_collection = db['palpites']
-
-# 3. Defina o formato de data (ESCOLHA UM E DESCOMENTE)
-# CORRIGIDO: O formato de data do seu DB ('2025-09-28T15:00') não possui segundos.
-DATETIME_FORMAT = '%Y-%m-%dT%H:%M'
-# Se for o formato brasileiro (DD/MM/AAAA HH:MM), use:
-# DATETIME_FORMAT = '%d/%m/%Y %H:%M'
-
-# --- FUNÇÃO DE SERIALIZAÇÃO ESSENCIAL ---
-# Esta função converte ObjectIds e outros tipos que o Jinja2 não entende
-# em strings e tipos básicos de Python.
-def serialize_mongo_object(data):
-    """
-    Serializa ObjectIds para string em um objeto ou lista de objetos do MongoDB.
-    """
-    if isinstance(data, list):
-        return [serialize_mongo_object(item) for item in data]
-    
-    if isinstance(data, dict):
-        new_data = {}
-        for key, value in data.items():
-            if isinstance(value, ObjectId):
-                new_data[key] = str(value)
-            elif isinstance(value, (list, dict)):
-                new_data[key] = serialize_mongo_object(value)
-            else:
-                new_data[key] = value
-        return new_data
-    return data
-
-# --- FUNÇÃO DE LOGIN_REQUIRED (EXEMPLO) ---
-# Se a sua função login_required não estiver definida, você também terá um erro 500
-# DESCOMENTE e use esta versão se não tiver a sua:
-# def login_required(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         if 'usuario_id' not in session:
-#             flash('Você precisa estar logado para acessar esta página.', 'warning')
-#             return redirect(url_for('login'))
-#         return f(*args, **kwargs)
-#     return decorated_function
-
-# --- ROTA DO PAINEL CORRIGIDA ---
 @app.route('/painel')
 @login_required
 def painel():
-    try:
-        # Obter a data e hora atual
-        agora = datetime.now()
-        
-        # --- Lógica de Busca de Rodadas ---
+    # 1. Obter a data e hora atual no formato do seu banco de dados (ex: 'DD/MM/YYYY HH:MM')
+    # Assumindo que você usa DATETIME_FORMAT = '%d/%m/%Y %H:%M'
+    agora = datetime.now().strftime(DATETIME_FORMAT)
+    
+    # --- Lógica de Busca de Rodadas ---
 
-        # Busca todas as rodadas ordenando pelo número (descrescente)
-        # O método .sort([('numero', -1)]) funciona com o pymongo.
-        todas_rodadas = list(rodadas_collection.find().sort([('numero', -1)]))
-        
-        rodada_aberta = None
-        rodadas_disponiveis = [] # Rodadas com prazo futuro OU passado, mas que já foram criadas
+    # 2. Busca a próxima rodada aberta
+    # CRÍTICO: Se sua data está no formato 'DD/MM/YYYY HH:MM', a comparação de strings
+    # do MongoDB ('$gt') pode não funcionar como esperado (não é ordem cronológica).
+    # Vamos buscar todas as rodadas e filtrar no Python para maior precisão.
+    
+    todas_rodadas = list(rodadas_collection.find().sort([('numero', -1)]))
+    
+    rodada_aberta = None
+    rodadas_disponiveis = []
 
-        for rodada in todas_rodadas:
-            try:
-                # 1. Converte a data do DB (string) para objeto datetime para comparação precisa
-                # OBSERVAÇÃO: O DATETIME_FORMAT agora é '%Y-%m-%dT%H:%M'
-                data_limite = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
-                
-                # 2. Verifica se o prazo ainda não passou
-                if data_limite > agora:
-                    # Rodada aberta para apostas (prazo futuro)
-                    rodadas_disponiveis.append(rodada)
-                    
-                    # A primeira rodada que encontrarmos com prazo futuro (descrescente pelo número)
-                    # é a rodada aberta principal
-                    if rodada_aberta is None:
-                        rodada_aberta = rodada
-                else:
-                    # Rodada com prazo passado, mas ainda disponível para consulta/ranking.
-                    rodadas_disponiveis.append(rodada)
-
-            except (ValueError, TypeError) as e:
-                # Ignora rodadas com formato de data inválido ou faltando o campo
-                # Esta mensagem de alerta deve parar de aparecer após a correção do DATETIME_FORMAT
-                print(f"Alerta: Rodada {rodada.get('numero')} possui formato de data inválido. Erro: {e}")
-                continue 
-
-        # 3. Serializa os objetos do MongoDB antes de enviar para o Jinja2
-        # Isso garante que a view não quebre ao tentar acessar o _id
-        
-        # Serializa a rodada aberta (se existir)
-        rodada_aberta_serializada = serialize_mongo_object(rodada_aberta) if rodada_aberta else None
-        
-        # Serializa a lista de rodadas disponíveis
-        rodadas_disponiveis_serializadas = serialize_mongo_object(rodadas_disponiveis)
-        
-        # 4. Busca os palpites do usuário para todas as rodadas (necessário para o painel)
-        # Só tenta buscar se o 'usuario_id' estiver na sessão (garantido pelo login_required, mas é bom checar)
-        if 'usuario_id' in session:
-            usuario_object_id = ObjectId(session['usuario_id'])
+    for rodada in todas_rodadas:
+        try:
+            # Converte a data do DB (string) para objeto datetime para comparação
+            data_limite = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
             
-            # Cria um mapa de rodada_id -> palpite_existente (para marcar no template)
-            palpites_usuario = {}
-            for palpite in palpites_collection.find({'usuario_id': usuario_object_id}):
-                # Converte ObjectId para string para facilitar a comparação no template
-                rodada_id_str = str(palpite['rodada_id'])
-                palpites_usuario[rodada_id_str] = True
-        else:
-             palpites_usuario = {}
+            # Se o prazo ainda não passou
+            if data_limite > datetime.now():
+                # Esta rodada está disponível para apostas ou consulta
+                rodadas_disponiveis.append(rodada)
+                
+                # A primeira rodada que encontrarmos com prazo futuro (por ser a mais recente ou por ordenação)
+                # será a rodada aberta principal
+                if rodada_aberta is None:
+                    rodada_aberta = rodada
+            else:
+                # O prazo passou, mas a rodada ainda está disponível para CONSULTA GERAL
+                rodadas_disponiveis.append(rodada)
 
+        except (ValueError, TypeError):
+            # Ignora rodadas com formato de data inválido
+            continue 
 
-        # 5. Envia as variáveis para o template
-        return render_template('painel.html', 
-                               is_admin=session.get('is_admin', False),
-                               rodada_aberta=rodada_aberta_serializada, 
-                               rodadas_disponiveis=rodadas_disponiveis_serializadas,
-                               palpites_usuario=palpites_usuario)
-
-    except Exception as e:
-        # Se ocorrer um erro interno, ele será exibido no terminal do Flask (melhor para debug)
-        print(f"ERRO CRÍTICO no Painel: {e}")
-        # Retorna para o login em caso de falha.
-        # Adicionado tratamento de erro específico para a URL
-        if "Could not build url" in str(e):
-             # Isso sugere que rodada_aberta não foi encontrada, mas o erro está no painel.html
-             flash("Erro: O painel não conseguiu carregar as rodadas. Verifique o seu código HTML.", 'danger')
-        else:
-            flash("Ocorreu um erro interno ao carregar o painel. Tente novamente.", 'danger')
-        
-        return redirect(url_for('login'))
-
-
-
-        # 5. Envia as variáveis para o template
-        return render_template('painel.html', 
-                               is_admin=session.get('is_admin', False),
-                               rodada_aberta=rodada_aberta_serializada, 
-                               rodadas_disponiveis=rodadas_disponiveis_serializadas,
-                               palpites_usuario=palpites_usuario)
-
-    except Exception as e:
-        # Se ocorrer um erro interno, ele será exibido no terminal do Flask (melhor para debug)
-        print(f"ERRO CRÍTICO no Painel: {e}")
-        # Retorna para o login em caso de falha.
-        flash("Ocorreu um erro interno ao carregar o painel. Tente novamente.", 'danger')
-        return redirect(url_for('login'))
-
-
+    # 3. Serializa os objetos do MongoDB antes de enviar para o Jinja2
+    if rodada_aberta:
+        rodada_aberta = serialize_mongo_object(rodada_aberta)
+    
+    rodadas_disponiveis = serialize_mongo_object(rodadas_disponiveis)
+    
+    # 4. Envia as variáveis para o template
+    return render_template('painel.html', 
+                           is_admin=session.get('is_admin', False),
+                           rodada_aberta=rodada_aberta, 
+                           rodadas_disponiveis=rodadas_disponiveis)
 
 
 @app.route('/logout')
@@ -606,12 +402,54 @@ def logout():
 # ASSUMINDO QUE AS FUNÇÕES serialize_mongo_object e get_time_by_id ESTÃO DEFINIDAS EM OUTRO LUGAR
 # Se não estiverem, adicione as funções auxiliares que forneci anteriormente.
 
+@app.route('/apostar')
+@login_required
+def apostar():
+    """Exibe a rodada mais recente que ainda não atingiu a data limite, com dados completos dos times."""
+    
+    agora = datetime.now()
+    agora_str = agora.strftime(DATETIME_FORMAT)
+
+    rodada_aberta = rodadas_collection.find_one({
+        'data_limite_apostas': {'$gte': agora_str}
+    }, sort=[('numero', 1)])
+
+    if not rodada_aberta:
+        flash('Nenhuma rodada aberta para apostas no momento!', 'info')
+        return redirect(url_for('painel'))
+
+    # Antes de serializar, buscamos os dados completos dos times e anexamos aos jogos
+    # --- BLOCO CRÍTICO PARA O ESCUDO ---
+    for jogo in rodada_aberta['jogos']:
+        # Anexa o dicionário completo do time (inclui nome, sigla e escudo_base64)
+        jogo['time_casa'] = get_time_by_id(jogo['time_casa_id'])
+        jogo['time_visitante'] = get_time_by_id(jogo['time_visitante_id'])
+    # -----------------------------------
+    
+    # Serializa a rodada APÓS anexar os dados dos times
+    serializable_rodada = serialize_mongo_object(rodada_aberta)
+    rodada_id = serializable_rodada['_id']
+
+    # Note: O campo de user_id no palpite geralmente é 'user_id' e não 'usuario_id' 
+    # (use o nome correto do seu campo de sessão e DB, aqui estou usando 'usuario_id' como no seu código)
+    palpite_existente = palpites_collection.find_one({
+        'usuario_id': ObjectId(session['usuario_id']),
+        'rodada_id': ObjectId(rodada_id)
+    })
+
+    serializable_palpite = serialize_mongo_object(palpite_existente) if palpite_existente else None
+
+    return render_template('apostar.html',
+                           rodada=serializable_rodada,
+                           palpite_existente=serializable_palpite)
+
+
 @app.route('/salvar_aposta/<rodada_id>', methods=['POST'])
 @login_required
 def salvar_aposta(rodada_id):
     """
     Processa o formulário, salva os palpites e verifica o limite de aposta.
-    CORRIGIDO: Valores vazios são tratados como 0.
+    CORRIGIDO: Usa 'id_jogo' como identificador para corresponder ao formulário.
     """
     try:
         rodada_object_id = ObjectId(rodada_id)
@@ -623,13 +461,13 @@ def salvar_aposta(rodada_id):
 
         # --- VERIFICAÇÃO DE DATA E HORA LIMITE ---
         try:
-            # Garanta que DATETIME_FORMAT esteja definido no seu app.py
-            data_limite_aposta = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT) 
+            data_limite_aposta = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
         except (ValueError, TypeError):
             flash("Erro interno: Formato da data limite da rodada inválido.", 'danger')
             return redirect(url_for('painel'))
 
         agora = datetime.now()
+
         if agora >= data_limite_aposta:
             data_formatada = data_limite_aposta.strftime('%d/%m/%Y às %H:%M')
             flash(f"O prazo para apostar na Rodada {rodada.get('numero')} encerrou em {data_formatada}.", 'danger')
@@ -641,9 +479,15 @@ def salvar_aposta(rodada_id):
 
         for jogo in rodada['jogos']:
             
-            # Usar sempre o id_jogo como identificador do jogo
-            jogo_identificador = str(jogo['id_jogo'])
+            # CORREÇÃO CRÍTICA: Prioriza o uso do identificador 'id_jogo',
+            # que é o campo que existe na sua estrutura de dados e foi usado no HTML
+            if 'id_jogo' not in jogo:
+                 flash('Erro fatal: Nenhum identificador (id_jogo) encontrado para um jogo. Verifique o DB.', 'danger')
+                 return redirect(url_for('apostar'))
 
+            jogo_identificador = str(jogo['id_jogo'])
+            
+            # Os nomes dos campos que o Flask deve buscar no request.form
             campo_casa = f'placar_casa_{jogo_identificador}'
             campo_visitante = f'placar_visitante_{jogo_identificador}'
 
@@ -651,15 +495,20 @@ def salvar_aposta(rodada_id):
             placar_visitante_str = request.form.get(campo_visitante)
 
             try:
-                # CORREÇÃO: Se a string for vazia/None, usa 0 (zero)
-                placar_casa = int(placar_casa_str) if placar_casa_str and placar_casa_str.strip() != '' else 0
-                placar_visitante = int(placar_visitante_str) if placar_visitante_str and placar_visitante_str.strip() != '' else 0
+                # Trata strings vazias ou None como None (vazio)
+                placar_casa = int(placar_casa_str) if placar_casa_str is not None and placar_casa_str.strip() != '' else None
+                placar_visitante = int(placar_visitante_str) if placar_visitante_str is not None and placar_visitante_str.strip() != '' else None
             except ValueError:
                 flash('Os placares devem ser números inteiros (0 ou mais).', 'danger')
-                return redirect(url_for('apostar', rodada_id=rodada_id)) # Redireciona para a rota correta (GET)
+                return redirect(url_for('apostar'))
+
+            # Validação: Se um deles for None, o palpite não foi preenchido
+            if placar_casa is None or placar_visitante is None:
+                flash('Todos os palpites devem ser preenchidos.', 'danger')
+                return redirect(url_for('apostar'))
 
             palpites.append({
-                'id_jogo': jogo_identificador,
+                'id_jogo': jogo_identificador, # Salva o identificador que funciona
                 'placar_casa': placar_casa,
                 'placar_visitante': placar_visitante
             })
@@ -684,41 +533,6 @@ def salvar_aposta(rodada_id):
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
-# Adicione esta função ao seu app.py, se ela estiver faltando.
-from bson.objectid import ObjectId
-from datetime import datetime
-
-# Certifique-se de que DATETIME_FORMAT e collections (rodadas_collection, palpites_collection)
-# estejam definidos no seu arquivo.
-
-@app.route('/apostar/<rodada_id>')
-@login_required
-def apostar(rodada_id):
-    """
-    Carrega a rodada e quaisquer palpites existentes para exibir o formulário.
-    """
-    try:
-        rodada_object_id = ObjectId(rodada_id)
-        
-        # 1. Busca a rodada
-        rodada = rodadas_collection.find_one({'_id': rodada_object_id})
-        if not rodada:
-            flash("Rodada não encontrada.", 'danger')
-            return redirect(url_for('painel'))
-
-        usuario_object_id = ObjectId(session['usuario_id'])
-        
-        # 2. Busca palpites existentes do usuário para pré-preencher
-        palpite_existente = palpites_collection.find_one({
-            'usuario_id': usuario_object_id,
-            'rodada_id': rodada_object_id
-        })
-
-        return render_template('apostar.html', rodada=rodada, palpite_existente=palpite_existente)
-
-    except Exception as e:
-        flash(f"Erro ao carregar a página de aposta: {e}", 'danger')
-        return redirect(url_for('painel'))
 
 @app.route('/ranking')
 @login_required
