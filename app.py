@@ -449,7 +449,7 @@ def salvar_aposta(rodada_id):
     """
     Processa o formulário e salva os palpites.
     CORRIGIDO: Valores vazios são tratados como 0 (zero) e o identificador do jogo
-    agora usa '_id' para corresponder ao HTML.
+    agora usa '_id' (do MongoDB) como prioridade para corresponder ao HTML.
     """
     try:
         rodada_object_id = ObjectId(rodada_id)
@@ -481,12 +481,14 @@ def salvar_aposta(rodada_id):
 
         for jogo in rodada['jogos']:
             
-            # CORREÇÃO CRÍTICA: Usa '_id' (do MongoDB), que é o que o HTML está enviando.
-            if '_id' not in jogo:
-                 flash('Erro fatal: Nenhum identificador (_id) encontrado para um jogo. Verifique o DB.', 'danger')
+            # NOVO TRATAMENTO DE ID: Prioriza '_id', mas verifica se existe algum identificador
+            jogo_identificador = str(jogo.get('_id') or jogo.get('id_jogo'))
+            
+            if jogo_identificador in ['None', '']:
+                 flash('Erro fatal: Nenhum identificador (_id ou id_jogo) encontrado para um jogo. Verifique o DB.', 'danger')
                  return redirect(url_for('apostar', rodada_id=rodada_id))
-
-            jogo_identificador = str(jogo['_id']) # <--- MUDANÇA AQUI: de 'id_jogo' para '_id'
+            
+            # --- FIM DO NOVO TRATAMENTO DE ID ---
             
             campo_casa = f'placar_casa_{jogo_identificador}'
             campo_visitante = f'placar_visitante_{jogo_identificador}'
@@ -535,6 +537,7 @@ def salvar_aposta(rodada_id):
         flash(f'Erro ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
+
 
 
 @app.route('/ranking')
