@@ -7,7 +7,10 @@
         <h2 class="mb-4 text-primary">✍️ Registrar Palpites - Rodada {{ rodada.numero }}</h2>
         
         <p>
-            Data Limite para Apostas: <span class="fw-bold">{{ rodada.data_limite_apostas }}</span>
+            {% set data_str = rodada.data_limite_apostas | replace('T', ' ') %}
+            Data Limite para Apostas: <span class="fw-bold">
+                {{ data_str.split(' ')[0].split('-') | reverse | join('/') }} às {{ data_str.split(' ')[1][:5] }}
+            </span>
             {% if palpite_existente %}
                 <br><span class="text-success">Seus palpites serão atualizados.</span>
             {% else %}
@@ -34,12 +37,12 @@
                     {% endfor %}
                 {% endif %}
 
-                {# Bloco do Jogo #}
+                {# Bloco do Jogo - Layout Vertical para Mobile #}
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="card-title text-center text-muted">Jogo {{ loop.index }}</h5>
                         
-                        {# NOVA ESTRUTURA: Usando d-flex para alinhar os três elementos no centro #}
+                        {# d-flex para alinhar os três elementos (Time Casa, X, Time Visitante) #}
                         <div class="d-flex justify-content-between align-items-center g-2 p-2">
                             
                             {# TIME DA CASA - BLOCO VERTICAL #}
@@ -58,10 +61,13 @@
                                     min="0"
                                     required
                                     placeholder="Placar"
-                                    value="{{ palpite_casa }}"
+                                    
+                                    {# CORREÇÃO DE VALOR: Garante que o servidor sempre receba um número (0 por padrão) #}
+                                    value="{{ palpite_casa if palpite_casa is not none and palpite_casa != '' else 0 }}"
+                                    
                                     class="form-control form-control-lg text-center"
                                     
-                                    {# CORREÇÃO: Foco na ALTURA e remoção de largura fixa #}
+                                    {# CORREÇÃO DE TAMANHO: Aumenta a altura para facilitar o toque no mobile #}
                                     style="min-height: 50px;" 
                                     
                                     inputmode="numeric" 
@@ -90,10 +96,13 @@
                                     min="0"
                                     required
                                     placeholder="Placar"
-                                    value="{{ palpite_visitante }}"
+                                    
+                                    {# CORREÇÃO DE VALOR: Garante que o servidor sempre receba um número (0 por padrão) #}
+                                    value="{{ palpite_visitante if palpite_visitante is not none and palpite_visitante != '' else 0 }}"
+                                    
                                     class="form-control form-control-lg text-center"
                                     
-                                    {# CORREÇÃO: Foco na ALTURA e remoção de largura fixa #}
+                                    {# CORREÇÃO DE TAMANHO: Aumenta a altura para facilitar o toque no mobile #}
                                     style="min-height: 50px;" 
                                     
                                     inputmode="numeric" 
