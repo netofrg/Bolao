@@ -39,15 +39,17 @@
                     <div class="card-body">
                         <h5 class="card-title text-center text-muted">Jogo {{ loop.index }}</h5>
                         
-                        <div class="row align-items-center g-2">
+                        {# NOVA ESTRUTURA: Usando d-flex para alinhar os três elementos no centro #}
+                        <div class="d-flex justify-content-between align-items-center g-2 p-2">
                             
-                            <div class="col-5 d-flex justify-content-end align-items-center">
+                            {# TIME DA CASA - BLOCO VERTICAL #}
+                            <div class="d-flex flex-column align-items-center w-40">
                                 
-                                <label class="fw-bold fs-5 me-3 d-flex align-items-center mb-0">
-                                    <span class="me-2">{{ jogo.time_casa.sigla }}</span>
+                                <label class="fw-bold fs-5 d-flex flex-column align-items-center mb-2">
                                     {% if jogo.time_casa.escudo_base64 %}
                                         <img src="{{ jogo.time_casa.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
                                     {% endif %}
+                                    <span class="mt-1">{{ jogo.time_casa.sigla }}</span>
                                 </label>
                                 
                                 <input 
@@ -55,48 +57,48 @@
                                     name="placar_casa_{{ jogo_id_str }}" 
                                     min="0"
                                     required
-                                    placeholder="Placar Casa"
+                                    placeholder="Placar"
                                     value="{{ palpite_casa }}"
                                     class="form-control form-control-lg text-center"
                                     
-                                    {# CORREÇÃO DE TAMANHO: Aumenta a altura e garante largura mínima #}
-                                    style="min-width: 65px; min-height: 50px;" 
+                                    {# CORREÇÃO: Foco na ALTURA e remoção de largura fixa #}
+                                    style="min-height: 50px;" 
                                     
-                                    {# CORREÇÃO MOBILE: Garante que o teclado numérico funcione #}
                                     inputmode="numeric" 
                                     pattern="\d*"
                                 >
                             </div>
 
-                            <div class="col-2 text-center">
+                            {# SEPARADOR "X" #}
+                            <div class="d-flex align-self-stretch align-items-center mx-2">
                                 <span class="badge bg-dark fs-5">X</span>
                             </div>
 
-                            <div class="col-5 d-flex justify-content-start align-items-center">
+                            {# TIME VISITANTE - BLOCO VERTICAL #}
+                            <div class="d-flex flex-column align-items-center w-40">
+                                
+                                <label class="fw-bold fs-5 d-flex flex-column align-items-center mb-2">
+                                    {% if jogo.time_visitante.escudo_base64 %}
+                                        <img src="{{ jogo.time_visitante.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
+                                    {% endif %}
+                                    <span class="mt-1">{{ jogo.time_visitante.sigla }}</span>
+                                </label>
                                 
                                 <input 
                                     type="number" 
                                     name="placar_visitante_{{ jogo_id_str }}" 
                                     min="0"
                                     required
-                                    placeholder="Placar Visitante"
+                                    placeholder="Placar"
                                     value="{{ palpite_visitante }}"
                                     class="form-control form-control-lg text-center"
                                     
-                                    {# CORREÇÃO DE TAMANHO: Aumenta a altura e garante largura mínima #}
-                                    style="min-width: 65px; min-height: 50px;" 
+                                    {# CORREÇÃO: Foco na ALTURA e remoção de largura fixa #}
+                                    style="min-height: 50px;" 
                                     
-                                    {# CORREÇÃO MOBILE: Garante que o teclado numérico funcione #}
                                     inputmode="numeric" 
                                     pattern="\d*"
                                 >
-                                
-                                <label class="fw-bold fs-5 ms-3 d-flex align-items-center mb-0">
-                                    {% if jogo.time_visitante.escudo_base64 %}
-                                        <img src="{{ jogo.time_visitante.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
-                                    {% endif %}
-                                    <span class="ms-2">{{ jogo.time_visitante.sigla }}</span>
-                                </label>
                             </div>
                         </div>
                     </div>
