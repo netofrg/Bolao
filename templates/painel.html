@@ -39,15 +39,19 @@
                             {% endif %}
                         </div>
 
-                        <!-- Botão de Aposta (Protegido pela verificação do rodada_aberta) -->
-                        <a href="{{ url_for('apostar', rodada_id=rodada_id_str) }}" class="btn btn-success btn-lg w-100">
-                            <i class="fas fa-edit"></i> 
-                            {% if palpites_usuario[rodada_id_str] %}
-                                Editar Palpites da Rodada {{ rodada_aberta.numero }}
-                            {% else %}
-                                Apostar Agora na Rodada {{ rodada_aberta.numero }}
-                            {% endif %}
-                        </a>
+                        <!-- Botão de Aposta (Protegido pela verificação do rodada_aberta e do _id) -->
+                        {% if rodada_id_str %}
+                            <a href="{{ url_for('apostar', rodada_id=rodada_id_str) }}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-edit"></i> 
+                                {% if palpites_usuario[rodada_id_str] %}
+                                    Editar Palpites da Rodada {{ rodada_aberta.numero }}
+                                {% else %}
+                                    Apostar Agora na Rodada {{ rodada_aberta.numero }}
+                                {% endif %}
+                            </a>
+                        {% else %}
+                             <p class="text-danger">Erro: Não foi possível obter o ID da rodada para criar o link.</p>
+                        {% endif %}
                         
                     {% else %}
                         <h3 class="card-title text-warning mb-3">Nenhuma Rodada Ativa para Apostas</h3>
