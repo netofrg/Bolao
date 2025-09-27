@@ -18,7 +18,7 @@
     <form method="POST" action="{{ url_for('salvar_aposta', rodada_id=rodada._id) }}">
         
         {% for jogo in rodada.jogos %}
-            {% set jogo_id_str = jogo._id %} 
+            {% set jogo_id_str = jogo._id|string %}
             
             {% set palpite_casa = '' %}
             {% set palpite_visitante = '' %}
