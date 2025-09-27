@@ -513,8 +513,6 @@ def apostar(rodada_id):
         return render_template('apostar.html', rodada=rodada, palpite_existente=palpite_existente)
 
     except Exception as e:
-        # AQUI VAI DAR 404 se a rota 'apostar' for chamada com ID inválido
-        # ou se o import de ObjectId estiver faltando.
         flash(f"Erro ao carregar a página de aposta: {e}", 'danger')
         return redirect(url_for('painel'))
 
