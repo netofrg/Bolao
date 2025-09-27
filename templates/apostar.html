@@ -62,8 +62,8 @@
                                     required
                                     placeholder="Placar"
                                     
-                                    {# CORREÇÃO FINAL DE VALUE: Só preenche se for EDIÇÃO (palpite_existente é True) #}
-                                    value="{{ palpite_casa if palpite_existente else '' }}"
+                                    {# CORREÇÃO FINAL: Usa default('') para garantir que o campo comece vazio na 1ª aposta #}
+                                    value="{{ palpite_casa | default('') }}"
                                     
                                     class="form-control form-control-lg text-center"
                                     style="min-height: 50px;" 
@@ -94,8 +94,8 @@
                                     required
                                     placeholder="Placar"
                                     
-                                    {# CORREÇÃO FINAL DE VALUE: Só preenche se for EDIÇÃO (palpite_existente é True) #}
-                                    value="{{ palpite_visitante if palpite_existente else '' }}"
+                                    {# CORREÇÃO FINAL: Usa default('') para garantir que o campo comece vazio na 1ª aposta #}
+                                    value="{{ palpite_visitante | default('') }}"
                                     
                                     class="form-control form-control-lg text-center"
                                     style="min-height: 50px;" 
@@ -114,7 +114,7 @@
                 </button>
                 <a href="{{ url_for('painel') }}" class="btn btn-secondary btn-lg">
                     <i class="fas fa-undo"></i> Voltar
-                </a>
+                </button>
             </div>
 
         </form>
