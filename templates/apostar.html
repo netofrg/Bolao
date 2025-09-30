@@ -4,110 +4,126 @@
 
 {% block content %}
 
+{# O script do Font Awesome estava com o URL errado. Corrigido para URL direta #}
+
+<script src="https://www.google.com/search?q=https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
 <div class="container my-4">
 <h2 class="mb-4 text-primary">✍️ Registrar Palpites - Rodada {{ rodada.numero }}</h2>
 
 <p>
-    Data Limite para Apostas: <span class="fw-bold">{{ rodada.data_limite_apostas }}</span>
-    {% if palpite_existente %}
-        <br><span class="text-success">Seus palpites serão atualizados.</span>
-    {% else %}
-        <br><span class="text-info">Esta é sua primeira aposta para esta rodada!</span>
-    {% endif %}
+Data Limite para Apostas: <span class="fw-bold">{{ rodada.data_limite_apostas }}</span>
+{% if palpite_existente %}
+
+<span class="text-success">Seus palpites serão atualizados.</span>
+{% else %}
+
+<span class="text-info">Esta é sua primeira aposta para esta rodada!</span>
+{% endif %}
+
 </p>
 
 <form method="POST" action="{{ url_for('salvar_aposta', rodada_id=rodada._id) }}">
-    
-    {% for jogo in rodada.jogos %}
-        {% set jogo_id_str = jogo._id %} 
-        
-        {% set palpite_casa = '' %}
-        {% set palpite_visitante = '' %}
-        {% set palpite_encontrado = false %}
-        
-        {% if palpite_existente %}
-            {% for palpite in palpite_existente.palpites %}
-                {% if not palpite_encontrado and palpite.id_jogo == jogo_id_str %}
-                    {% set palpite_casa = palpite.placar_casa %}
-                    {% set palpite_visitante = palpite.placar_visitante %}
-                    {% set palpite_encontrado = true %}
-                {% endif %}
-            {% endfor %}
+
+{% for jogo in rodada.jogos %}
+{# Usamos o ID real do jogo para pré-preenchimento, mas a chave de envio será o loop.index #}
+{% set jogo_id_str = jogo._id | string %}
+
+{% set palpite_casa = '' %}
+{% set palpite_visitante = '' %}
+{% set palpite_encontrado = false %}
+
+{% if palpite_existente %}
+    {% for palpite in palpite_existente.palpites %}
+        {% if not palpite_encontrado and palpite.id_jogo == jogo_id_str %}
+            {% set palpite_casa = palpite.placar_casa %}
+            {% set palpite_visitante = palpite.placar_visitante %}
+            {% set palpite_encontrado = true %}
         {% endif %}
+    {% endfor %}
+{% endif %}
 
-        {# Bloco do Jogo #}
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title text-center text-muted">Jogo {{ loop.index }}</h5>
+{# Bloco do Jogo #}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title text-center text-muted">Jogo {{ loop.index }}</h5>
+        
+        {# CAMPO OCULTO: Envia o ID real para o Python mapear corretamente #}
+        <input type="hidden" name="jogo_id_{{ loop.index }}" value="{{ jogo_id_str }}">
+
+        {# Estrutura responsiva para placares e escudos #}
+        <div class="d-flex justify-content-between align-items-center g-2 p-2">
+            
+            {# TIME DA CASA - BLOCO VERTICAL #}
+            <div class="d-flex flex-column align-items-center w-40">
                 
-                {# NOVA ESTRUTURA: Usando d-flex para alinhar os três elementos no centro #}
-                <div class="d-flex justify-content-between align-items-center g-2 p-2">
+                <label class="fw-bold fs-5 d-flex flex-column align-items-center mb-2">
+                    {% if jogo.time_casa.escudo_base64 %}
+                        <img src="{{ jogo.time_casa.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
+                    {% endif %}
+                    <span class="mt-1">{{ jogo.time_casa.sigla }}</span>
+                </label>
+                
+                <input 
+                    type="text" 
+                    {# MUDANÇA CRÍTICA: USANDO loop.index como chave de envio #}
+                    name="placar_casa_{{ loop.index }}" 
+                    min="0"
+                    placeholder="Placar"
+                    value="{{ palpite_casa | default(0) }}"
+                    class="form-control form-control-lg text-center"
                     
-                    {# TIME DA CASA - BLOCO VERTICAL #}
-                    <div class="d-flex flex-column align-items-center w-40">
-                        
-                        <label class="fw-bold fs-5 d-flex flex-column align-items-center mb-2">
-                            {% if jogo.time_casa.escudo_base64 %}
-                                <img src="{{ jogo.time_casa.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
-                            {% endif %}
-                            <span class="mt-1">{{ jogo.time_casa.sigla }}</span>
-                        </label>
-                        
-                        <input 
-                            **type="text"** name="placar_casa_{{ jogo_id_str }}" 
-                            min="0"
-                            placeholder="Placar"
-                            value="{{ palpite_casa | default(0) }}"
-                            class="form-control form-control-lg text-center"
-                            
-                            style="min-height: 50px; max-width: 80px;" 
-                            
-                            inputmode="numeric" 
-                            pattern="\d*"
-                        >
-                    </div>
+                    style="min-height: 50px; max-width: 80px;" 
+                    
+                    inputmode="numeric" 
+                    pattern="\d*"
+                >
+            </div>
 
-                    {# SEPARADOR "X" #}
-                    <div class="d-flex align-self-stretch align-items-center mx-2">
-                        <span class="badge bg-dark fs-5">X</span>
-                    </div>
+            {# SEPARADOR "X" #}
+            <div class="d-flex align-self-stretch align-items-center mx-2">
+                <span class="badge bg-dark fs-5">X</span>
+            </div>
 
-                    {# TIME VISITANTE - BLOCO VERTICAL #}
-                    <div class="d-flex flex-column align-items-center w-40">
-                        
-                        <label class="fw-bold fs-5 d-flex flex-column align-items-center mb-2">
-                            {% if jogo.time_visitante.escudo_base64 %}
-                                <img src="{{ jogo.time_visitante.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
-                            {% endif %}
-                            <span class="mt-1">{{ jogo.time_visitante.sigla }}</span>
-                        </label>
-                        
-                        <input 
-                            **type="text"** name="placar_visitante_{{ jogo_id_str }}" 
-                            min="0"
-                            placeholder="Placar"
-                            value="{{ palpite_visitante | default(0) }}"
-                            class="form-control form-control-lg text-center"
-                            
-                            style="min-height: 50px; max-width: 80px;" 
-                            
-                            inputmode="numeric" 
-                            pattern="\d*"
-                        >
-                    </div>
-                </div>
+            {# TIME VISITANTE - BLOCO VERTICAL #}
+            <div class="d-flex flex-column align-items-center w-40">
+                
+                <label class="fw-bold fs-5 d-flex flex-column align-items-center mb-2">
+                    {% if jogo.time_visitante.escudo_base64 %}
+                        <img src="{{ jogo.time_visitante.escudo_base64 }}" alt="Escudo" style="max-width: 30px; height: auto;">
+                    {% endif %}
+                    <span class="mt-1">{{ jogo.time_visitante.sigla }}</span>
+                </label>
+                
+                <input 
+                    type="text" 
+                    {# MUDANÇA CRÍTICA: USANDO loop.index como chave de envio #}
+                    name="placar_visitante_{{ loop.index }}" 
+                    min="0"
+                    placeholder="Placar"
+                    value="{{ palpite_visitante | default(0) }}"
+                    class="form-control form-control-lg text-center"
+                    
+                    style="min-height: 50px; max-width: 80px;" 
+                    
+                    inputmode="numeric" 
+                    pattern="\d*"
+                >
             </div>
         </div>
-    {% endfor %}
-
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary btn-lg me-2">
-            <i class="fas fa-save"></i> Salvar Meus Palpites
-        </button>
-        <a href="{{ url_for('painel') }}" class="btn btn-secondary btn-lg">
-            <i class="fas fa-undo"></i> Voltar
-        </a>
     </div>
+</div>
+
+{% endfor %}
+
+<div class="mt-4">
+<button type="submit" class="btn btn-primary btn-lg me-2">
+<i class="fas fa-save"></i> Salvar Meus Palpites
+</button>
+<a href="{{ url_for('painel') }}" class="btn btn-secondary btn-lg">
+<i class="fas fa-undo"></i> Voltar
+</a>
+</div>
 
 </form>
 

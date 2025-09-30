@@ -9,6 +9,14 @@ from datetime import datetime, date  # Importado 'date' para uso em now_date()
 from bson.errors import InvalidId # <-- ADICIONE ESTA IMPORTAÇÃO
 import base64
 from werkzeug.utils import secure_filename
+from datetime import datetime
+import pytz 
+# Importe o ObjectId e outras coisas que você já tem...
+from bson.objectid import ObjectId # Exemplo de outra importação
+# ...
+
+# Defina o Fuso Horário de Brasília (TZ = Time Zone)
+BRASILIA_TZ = pytz.timezone('America/Sao_Paulo') 
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -448,78 +456,101 @@ def apostar():
 def salvar_aposta(rodada_id):
     """
     Processa o formulário e salva os palpites.
-    CORRIGIDO: Valores vazios são tratados como 0 (zero). O identificador do jogo
-    agora usa '_id' (do MongoDB) como prioridade para corresponder ao HTML.
+    Esta versão usa o loop.index (1, 2, 3...) para ler o formulário
+    e o campo oculto para ler o ID do jogo real do MongoDB.
     """
+    
+    # === PONTO DE DEPURAÇÃO CRÍTICO ===
+    print("-" * 50)
+    print("DADOS DO FORMULÁRIO RECEBIDOS:")
+    print(request.form) # IMPRIME o objeto ImmutableMultiDict completo
+    print("-" * 50)
+    # ==================================
+
     try:
         rodada_object_id = ObjectId(rodada_id)
-        # Assumindo que DATETIME_FORMAT e collections estão definidas globalmente
+        # Assumindo que collections (e.g., rodadas_collection) estão definidas
         rodada = rodadas_collection.find_one({'_id': rodada_object_id})
 
         if not rodada:
             flash("Rodada não encontrada.", 'danger')
             return redirect(url_for('painel'))
 
-        # --- VERIFICAÇÃO DE DATA E HORA LIMITE ---
+        # --- VERIFICAÇÃO DE DATA E HORA LIMITE (Com BRASILIA_TZ) ---
         try:
-            # Garante que DATETIME_FORMAT está definido no topo do seu arquivo Python.
-            data_limite_aposta = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
+            data_limite_aposta_naive = datetime.strptime(rodada['data_limite_apostas'], DATETIME_FORMAT)
+            data_limite_aposta = BRASILIA_TZ.localize(data_limite_aposta_naive)
         except (ValueError, TypeError):
             flash("Erro interno: Formato da data limite da rodada inválido.", 'danger')
             return redirect(url_for('painel'))
-
-        agora = datetime.now()
-
-        if agora >= data_limite_aposta:
-            data_formatada = data_limite_aposta.strftime('%d/%m/%Y às %H:%M')
-            flash(f"O prazo para apostar na Rodada {rodada.get('numero')} encerrou em {data_formatada}.", 'danger')
+        except NameError:
+            flash("Erro interno: Falha na configuração de fuso horário. Verifique se 'pytz' e 'BRASILIA_TZ' foram definidos.", 'danger')
             return redirect(url_for('painel'))
-        # ------------------------------------------
+
+        agora_utc = datetime.now(pytz.utc) 
+        agora_brasilia = agora_utc.astimezone(BRASILIA_TZ)
+        
+        if agora_brasilia >= data_limite_aposta:
+            data_formatada = data_limite_aposta.strftime('%d/%m/%Y às %H:%M')
+            flash(f"O prazo para apostar na Rodada {rodada.get('numero')} encerrou em {data_formatada} (Horário de Brasília).", 'danger')
+            return redirect(url_for('painel'))
+        # -------------------------------------------------------------------------
 
         usuario_object_id = ObjectId(session['usuario_id'])
         palpites = []
 
-        for jogo in rodada['jogos']:
+        # Usamos enumerate(..., start=1) para que 'index' seja 1, 2, 3... 
+        # e corresponda ao 'loop.index' do HTML.
+        for index, jogo in enumerate(rodada['jogos'], start=1):
             
-            # NOVO TRATAMENTO DE ID: Prioriza '_id', mas verifica se existe algum identificador
-            jogo_identificador = str(jogo.get('_id') or jogo.get('id_jogo'))
+            # --- LER O ID REAL DO CAMPO OCULTO (Corrigindo o problema do ID Vazio) ---
+            # O HTML envia 'jogo_id_1', 'jogo_id_2', etc., com o ObjectId real como valor.
+            jogo_identificador = request.form.get(f'jogo_id_{index}', '').strip()
             
-            if jogo_identificador in ['None', '']:
-                 flash('Erro fatal: Nenhum identificador (_id ou id_jogo) encontrado para um jogo. Verifique o DB.', 'danger')
-                 return redirect(url_for('apostar', rodada_id=rodada_id))
+            # Fallback de segurança, caso o campo oculto não envie nada
+            if not jogo_identificador:
+                 # CORREÇÃO CRÍTICA: Tenta usar id_jogo primeiro, depois _id.
+                 # O ID real deve ser uma string única para cada jogo.
+                 jogo_identificador = str(jogo.get('id_jogo') or jogo.get('_id', 'ID_DESCONHECIDO'))
+                 print(f"DEBUG: Usando ID de fallback (id_jogo ou _id): {jogo_identificador}")
             
-            # --- FIM DO NOVO TRATAMENTO DE ID ---
+            # Se mesmo após o fallback o ID for desconhecido (ID_DESCONHECIDO), o palpite não será salvo corretamente.
+            if jogo_identificador == 'ID_DESCONHECIDO':
+                flash(f"Erro: ID real do Jogo {index} não encontrado. Palpite não salvo para este jogo.", 'warning')
+                continue # Pula este jogo e continua com o próximo
+                
             
-            campo_casa = f'placar_casa_{jogo_identificador}'
-            campo_visitante = f'placar_visitante_{jogo_identificador}'
+            # --- LER OS PLACARES USANDO O ÍNDICE ---
+            # O HTML envia 'placar_casa_1', 'placar_casa_2', etc.
+            campo_casa = f'placar_casa_{index}'
+            campo_visitante = f'placar_visitante_{index}'
 
-            # Usa request.form.get com string vazia como padrão, caso o campo não exista
-            placar_casa_str = request.form.get(campo_casa, '')
-            placar_visitante_str = request.form.get(campo_visitante, '')
+            # CAPTURA DE DADOS
+            placar_casa_str = request.form.get(campo_casa, '').strip()
+            placar_visitante_str = request.form.get(campo_visitante, '').strip()
             
-            # Inicializa placares com 0. Se a conversão for bem-sucedida, eles serão sobrescritos.
+            # --- LÓGICA DE CONVERSÃO ROBUSTA (Corrigindo 0x0) ---
             placar_casa = 0
             placar_visitante = 0
 
-            try:
-                # Se o campo não for vazio, tenta converter. Se for vazio, fica como 0 (linha acima).
-                if placar_casa_str.strip() != '':
+            # Conversão Casa
+            if placar_casa_str:
+                try:
                     placar_casa = int(placar_casa_str)
-                
-                if placar_visitante_str.strip() != '':
-                    placar_visitante = int(placar_visitante_str)
-            
-            except ValueError:
-                # Isso captura se o usuário digitou algo que não é um número.
-                # Se cair aqui, o código simplesmente continua com os valores 0 já definidos.
-                flash('Um ou mais placares foram ignorados por não serem números inteiros.', 'warning')
-                pass # Continua o loop usando placar_casa = 0 e placar_visitante = 0
+                except ValueError:
+                    flash(f'Palpite inválido ignorado para a casa no jogo {index}.', 'warning')
 
-            # A validação de 'None' foi removida (o que está certo)
+            # Conversão Visitante
+            if placar_visitante_str:
+                try:
+                    placar_visitante = int(placar_visitante_str)
+                except ValueError:
+                    flash(f'Palpite inválido ignorado para o visitante no jogo {index}.', 'warning')
+            
+            # --- FIM DA LÓGICA ---
 
             palpites.append({
-                # Salva o identificador correto que foi usado no formulário
-                'id_jogo': jogo_identificador, 
+                'id_jogo': jogo_identificador, # Usa o ID real (do campo oculto ou fallback)
                 'placar_casa': placar_casa,
                 'placar_visitante': placar_visitante
             })
@@ -541,13 +572,10 @@ def salvar_aposta(rodada_id):
         flash(f'Palpites da Rodada {rodada["numero"]} salvos com sucesso!', 'success')
 
     except Exception as e:
-        # Garante que, se houver um erro, o usuário seja redirecionado corretamente
-        print(f"ERRO AO SALVAR APOSTA: {e}") 
-        flash(f'Erro ao salvar a aposta: {e}', 'danger')
+        print(f"ERRO FATAL AO SALVAR APOSTA: {e}") 
+        flash(f'Erro fatal ao salvar a aposta: {e}', 'danger')
 
     return redirect(url_for('painel'))
-
-
 
 
 @app.route('/ranking')
